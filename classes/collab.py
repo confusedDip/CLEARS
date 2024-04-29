@@ -28,8 +28,8 @@ class Context:
         self.resource_ids.remove(resource)
 
     def print_context(self) -> str:
-        context_str = (f"{self.id}\n" + "{" + ', '.join(list(self.user_ids)) + "}" +
-                       "\n" "[" + ', '.join(list(self.resource_ids)) + "]")
+        context_str = (f"{self.id}\n" + "{" + ', '.join(sorted(self.user_ids)) + "}" +
+                       "\n" "[" + ', '.join(sorted(self.resource_ids)) + "]")
         # print(context_str)
         return context_str
 
@@ -192,7 +192,6 @@ class Network:
         # self.visualize_network()
 
     def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str]):
-        # TODO: Wrong Behavior
 
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
@@ -202,10 +201,17 @@ class Network:
         queue = deque([root_context])
         visited = {}
 
+        correct_context_id = ''  # This is the context where the privileges should be re-shared after un-sharing
+
         # The purpose is to find which context the resources are shared
         # The BFS Loop
         while queue:
             current_context = queue.popleft()
+
+            if current_context.id == correct_context_id:
+                current_context.add_resource(resource_id_to_unshare)
+                print(f"Resource {resource_id_to_unshare} is re-shared in {current_context.id}")
+                return
 
             users = current_context.get_users()
             resources = current_context.get_resources()
@@ -218,6 +224,7 @@ class Network:
                 if resource_id_to_unshare in resources:
 
                     current_context.remove_resource(resource_id_to_unshare)
+                    print(f"Resource {resource_id_to_unshare} is unshared from {current_context.id}")
 
                     additional_users = users.difference(involved_users)
                     print(f"Additional Users: {additional_users}")
@@ -228,12 +235,6 @@ class Network:
 
                     correct_users = additional_users.union({from_user_id})
                     correct_context_id = ''.join(sorted(correct_users))
-
-                    for child_context in current_context.children:
-                        if child_context.id == correct_context_id:
-                            child_context.add_resource(resource_id_to_unshare)
-                            # self.visualize_network()
-                            return
 
             for child_context in current_context.children:
                 if child_context not in visited.keys():

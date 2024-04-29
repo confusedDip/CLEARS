@@ -15,7 +15,6 @@ def main():
 
     network = Network(set(Users.users.keys()))
 
-
     User("D")
     network.add_new_user("D")
 
@@ -23,13 +22,14 @@ def main():
     network.share_resource("A", "A2", {"B", "C", "D"})
     network.share_resource("A", "A3", {"B", "C"})
     network.unshare_resource("A", "A1", {"B", "C"})
+    network.unshare_resource("A", "A2", {"B"})
     network.share_resource("A", "A3", {"B"})
 
-    print(network.can_access("A", "A2"))    # True
-    print(network.can_access("B", "A2"))    # False
-    print(network.can_access("C", "A2"))    # True
-    print(network.can_access("A", "B1"))    # False
-    print(network.can_access("D", "A2"))    # False
+    print(network.can_access("A", "A2"))  # True
+    print(network.can_access("B", "A2"))  # False
+    print(network.can_access("C", "A2"))  # True
+    print(network.can_access("A", "B1"))  # False
+    print(network.can_access("D", "A2"))  # False
 
     network.visualize_network()
 
