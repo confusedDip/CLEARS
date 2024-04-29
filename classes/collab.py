@@ -1,4 +1,5 @@
 import datetime
+import time
 from collections import deque
 from itertools import combinations
 import pygraphviz as pgv
@@ -50,6 +51,22 @@ class Network:
 
         if context.id not in self.contexts.keys():
             self.contexts[context.id] = context
+
+    def del_context(self, context: Context):
+
+        print(f"Context to be deleted: {context.id}")
+        if context.id in self.contexts.keys():
+
+            # Remove links from parents
+            for parent in context.parents:
+                parent.children.remove(context)
+
+            # Remove links from children
+            for child in context.children:
+                child.parents.remove(context)
+
+            # Delete the context
+            del self.contexts[context.id]
 
     def create_network(self):
 
@@ -130,10 +147,17 @@ class Network:
                     visited[child_context] = True
 
         g.layout(prog='dot')
-        g.draw(f'collaboration_network_{root_context.id}_{datetime.datetime.now()}.png')
-        print("Collaboration network visualization saved as collaboration_network.png")
+        g.draw(f'collaboration_network_{time.time()}.png')
+        print("Collaboration network visualization saved")
 
     def share_resource(self, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str]):
+
+        # Allow only the owner to share
+        resource_to_share = get_resource(resource_id=resource_id_to_share)
+
+        if from_user_id != resource_to_share.get_owner().get_uid():
+            print(f"Error: Only owner of a resource can share it!")
+            return
 
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
@@ -191,13 +215,15 @@ class Network:
 
         # self.visualize_network()
 
-    def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str]):
+    def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str], root_context=None):
 
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
 
         # Start with the root context and do a Breadth-First-Search (BFS)
-        root_context = self.root_context
+
+        if root_context is None:
+            root_context = self.root_context
         queue = deque([root_context])
         visited = {}
 
@@ -242,29 +268,99 @@ class Network:
                     visited[child_context] = True
 
     def remove_user(self, user_id: str):
-        pass
+
+        # Start with the root context and do a Breadth-First-Search (BFS)
+        root_context = self.root_context
+        stack = deque([root_context])
+
+        visited = {}
+
+        # The purpose is to find which all contexts involve the user and need to be removed
+        # The DFS Loop
+        while stack:
+
+            current_context = stack[-1]
+
+            if current_context.id in visited.keys():
+                stack.pop()
+                self.del_context(current_context)
+                continue
+            else:
+                visited[current_context.id] = True
+
+            users = current_context.get_users()
+            resources = current_context.get_resources().copy()
+            other_users = users - {user_id}
+
+            # Step 1: Check if the user exists in the current context, then it needs to be removed
+            if user_id in users:
+
+                # Step 2: Check if the current context is a leaf context, delete it!
+                if len(current_context.children) == 0:
+                    stack.pop()
+                    self.del_context(current_context)
+                    continue
+
+                for resource_id in resources:
+
+                    # Step 3: Check if the user have been shared anything within the context, then unshare it
+                    if get_resource(resource_id).get_owner().get_uid() != user_id:
+                        self.unshare_resource(
+                            from_user_id=get_resource(resource_id).get_owner().get_uid(),
+                            resource_id_to_unshare=resource_id,
+                            to_user_ids={user_id},
+                            root_context=current_context
+                        )
+
+                # Step 4: Check if the current context is the root context, then update the root
+                # And push all children except the updated root
+                if current_context == self.root_context:
+
+                    new_root_context_id = ''.join(sorted(other_users))
+                    for child_context in current_context.children:
+                        if child_context.id == new_root_context_id:
+                            self.root_context = child_context
+                        else:
+                            stack.append(child_context)
+
+                # Otherwise, push all children to the stack
+                else:
+                    for child_context in current_context.children:
+                        if child_context.id not in visited.keys():
+                            stack.append(child_context)
+
+            else:
+                stack.pop()
 
     def can_access(self, requester_id: str, resource_id: str) -> bool:
 
+        # Obtain the resource from the requested resource_id
         resource = get_resource(resource_id)
+        # Obtain the owner uid
         owner_id = resource.get_owner().get_uid()
 
+        # Always allow the owner to access
         if requester_id == owner_id:
             return True
 
+        # Use involved_users to find the potential contexts
         involved_users = {owner_id, requester_id}
 
+        # Search across the network to see if the resource has been shared in any of the contexts involving the users
         root_context = self.root_context
         queue = deque([root_context])
         visited = {}
 
+        # The BFS Loop
         while queue:
 
             current_context = queue.popleft()
             users = current_context.get_users()
 
+            # If the current context include the two users involved in the request, it needs further investigation
             if involved_users.issubset(users):
 
+                # If the requested resource has been shared here, GRANT access
                 resources = current_context.get_resources()
                 if resource_id in resources:
                     return True
@@ -274,4 +370,5 @@ class Network:
                     queue.append(child_context)
                     visited[child_context] = True
 
+        # If access is not granted by now, DENY
         return False
