@@ -4,26 +4,26 @@ from classes.user import User
 class Resource:
 
     def __init__(self, rid: str, owner: User):
-        self.rid = rid
-        self.owner = owner
-        print(f"Resource {self.rid} (o: {self.owner.get_uid()}) Added!")
+        self.__rid = rid
+        self.__owner = owner
+        print(f"Resource {self.__rid} (o: {self.__owner.get_uid()}) Added!")
         add_resource(self)
 
     def get_rid(self) -> str:
-        return self.rid
+        return self.__rid
 
     def get_owner(self):
-        return self.owner
+        return self.__owner
 
 
 def add_resource(resource: Resource):
 
-    if resource.rid in Resources.resources.keys():
+    if resource.get_rid() in Resources.resources.keys():
         print("Resource already exists!")
         return
     else:
-        Resources.resources[resource.rid] = resource
-        print(f"Resource {resource.rid} Added!")
+        Resources.resources[resource.get_rid()] = resource
+        print(f"Resource {resource.get_owner()} Added!")
 
 
 def get_resource(resource_id: str) -> Resource:

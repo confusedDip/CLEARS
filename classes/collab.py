@@ -3,7 +3,7 @@ import time
 from collections import deque
 from itertools import combinations
 import pygraphviz as pgv
-
+from classes.user import get_user
 from classes.resource import get_resource
 
 
@@ -37,15 +37,35 @@ class Context:
 
 class Network:
 
-    def __init__(self, user_ids: set[str]):
+    def __init__(self, user_ids: set[str], project_id: str):
+
+        # Initialize the Network object
+        self.project_id = project_id
         self.all_user_ids: set[str] = user_ids
         self.root_context: Context | None = None
         self.contexts: dict[str, Context] = {}
+        # Create the network
         self.create_network()
+        # Add the network to the set of networks
+        add_network(self)
+        # Add the project to each user's project list
+        add_project(self)
+
+    def __del__(self):
+        # Remove the network from the set of networks
+        remove_network(self)
+        # Remove the project to each user's project list
+        remove_project(self)
+        # Delete the project
+        del self
 
     def add_new_user(self, user: str):
+        # Update the set of involved users
         self.all_user_ids.add(user)
+        # Expand the network
         self.expand_network()
+        # Add the project to new user's project list
+        add_project(self, user_id=user)
 
     def add_context(self, context: Context):
 
@@ -215,7 +235,8 @@ class Network:
 
         # self.visualize_network()
 
-    def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str], root_context=None):
+    def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str],
+                         root_context=None):
 
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
@@ -268,6 +289,10 @@ class Network:
                     visited[child_context] = True
 
     def remove_user(self, user_id: str):
+
+        # Remove the user from the network object, and remove the project from the user
+        self.all_user_ids.remove(user_id)
+        remove_project(self, user_id)
 
         # Start with the root context and do a Breadth-First-Search (BFS)
         root_context = self.root_context
@@ -339,10 +364,6 @@ class Network:
         # Obtain the owner uid
         owner_id = resource.get_owner().get_uid()
 
-        # Always allow the owner to access
-        if requester_id == owner_id:
-            return True
-
         # Use involved_users to find the potential contexts
         involved_users = {owner_id, requester_id}
 
@@ -372,3 +393,99 @@ class Network:
 
         # If access is not granted by now, DENY
         return False
+
+
+def add_network(network: Network):
+    project_id = network.project_id
+
+    if project_id not in Networks.networks.keys():
+        Networks.networks[project_id] = network
+        print(f"Collaboration Network for Project {project_id} added")
+    else:
+        print(f"Error: Collaboration Network for Project {project_id} already exists")
+
+
+def remove_network(network: Network):
+    project_id = network.project_id
+
+    if project_id in Networks.networks.keys():
+        del Networks.networks[project_id]
+        print(f"Collaboration Network for Project {project_id} removed")
+    else:
+        print(f"Error: Collaboration Network for Project {project_id} does not exist")
+
+
+def get_network(project_id: str) -> Network:
+    if project_id in Networks.networks.keys():
+        return Networks.networks[project_id]
+
+
+def add_project(network: Network, user_id=None):
+    project_id = network.project_id
+
+    if user_id is not None:
+        user = get_user(user_id=user_id)
+        user.add_project(project_id)
+        print(f"Project {project_id} is added to User {user_id}")
+        return
+
+    user_ids = network.all_user_ids
+
+    for user_id in user_ids:
+        user = get_user(user_id)
+        user.add_project(project_id)
+        print(f"Project {project_id} is added to User {user_id}")
+
+
+def remove_project(network: Network, user_id=None):
+    project_id = network.project_id
+
+    if user_id is not None:
+        user = get_user(user_id=user_id)
+        user.remove_project(project_id)
+        print(f"Project {project_id} is removed from User {user_id}")
+        return
+
+    user_ids = network.all_user_ids
+
+    for user_id in user_ids:
+        user = get_user(user_id)
+        user.remove_project(project_id)
+        print(f"Project {project_id} is removed from User {user_id}")
+
+
+def can_access(requester_id: str, resource_id: str) -> bool:
+    print(f"Requester: {requester_id}, Requested Resource: {resource_id}")
+
+    # Obtain the resource from the requested resource_id
+    resource = get_resource(resource_id)
+    # Obtain the owner uid
+    owner_id = resource.get_owner().get_uid()
+
+    # Always allow the owner to access
+    if requester_id == owner_id:
+        return True
+
+    # Obtain the mutual projects of the owner and the requestor
+    owner_projects = resource.get_owner().get_projects()
+    requester_projects = get_user(requester_id).get_projects()
+    mutual_projects = owner_projects.intersection(requester_projects)
+
+    # If they do not work on any common project, deny!
+    if len(mutual_projects) == 0:
+        return False
+
+    # Explore the collaboration network for each project to make a decision
+    for project in mutual_projects:
+        network = get_network(project)
+        print(f"Checking the Collaboration Network for Project {project}")
+        if network.can_access(requester_id, resource_id):
+            return True
+        else:
+            print("False!")
+
+    return False
+
+
+class Networks:
+    networks: [str, Network] = dict()
