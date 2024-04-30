@@ -4,7 +4,6 @@ class User:
         self.__uid: str = uid
         self.__projects: set[str] = set()
         self.__owned_resources: set[str] = set()
-        add_user(self)
 
     def get_uid(self) -> str:
         return self.__uid
@@ -27,27 +26,7 @@ class User:
         return self.__projects
 
 
-def add_user(user: User):
-    if user.get_uid() in Users.users.keys():
-        print("User already exists!")
-        return
-    else:
-        Users.users[user.get_uid()] = user
-        print(f"User {user.get_uid()} Added!")
 
-
-def get_user(user_id: str) -> User:
-    if user_id in Users.users.keys():
-        return Users.users[user_id]
-
-
-def remove_user(user_id):
-
-    if user_id in Users.users.keys():
-        print("No such user exists!")
-        return
-    else:
-        Users.users.pop(user_id)
 
 
 class Users:

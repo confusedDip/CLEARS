@@ -1,26 +1,26 @@
-from classes.resource import Resource
-from classes.user import User, get_user
-from classes.collab import Network, get_network, can_access
+from utilities.collab import get_network, can_access, start_project
+from utilities.user import create_user, get_user
+from utilities.resource import create_resource
 
 
 def main():
     # Create four users: A, B, C, D
-    User("A")
-    User("B")
-    User("C")
-    User("D")
+    create_user(user_id="A")
+    create_user(user_id="B")
+    create_user(user_id="C")
+    create_user(user_id="D")
 
     # Give the users some resources to own
     for uid in {"A", "B", "C", "D"}:
         user = get_user(user_id=uid)
         for i in range(1, 5):
-            r = Resource(rid=f"{uid}{i}", owner=user)
+            r = create_resource(resource_id=f"{uid}{i}", owner=uid)
             user.add_owned_resource(r)
 
     # Start a project P1 with A, B, C
-    Network(user_ids={"A", "B", "C"}, project_id="P1")
+    start_project(user_ids={"A", "B", "C"}, project_id="P1")
     # Start a project P2 with A, D
-    Network(user_ids={"A", "D"}, project_id="P2")
+    start_project(user_ids={"A", "D"}, project_id="P2")
 
     # Obtain the network for project P1
     network_p1 = get_network("P1")
