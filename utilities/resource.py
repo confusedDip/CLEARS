@@ -3,7 +3,7 @@ from classes.resource import Resource, Resources
 
 def create_resource(resource_id: str, owner: str):
     resource = Resource(rid=resource_id, owner=owner)
-    print(f"Resource {resource.get_rid()} (o: {resource.get_owner()} Added!")
+    print(f"Resource {resource.get_rid()} (o: {resource.get_owner()}) Added!")
     add_resource(resource)
 
 
