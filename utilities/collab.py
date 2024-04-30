@@ -8,7 +8,7 @@ def start_project(user_ids: set[str], project_id: str):
     # Add the network to the set of networks
     add_network(network)
     # Add the project to each user's project list
-    add_project(user_ids=network.all_user_ids, project_id=network.project_id)
+    add_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
 
 
 def end_project(project_id: str):
@@ -16,13 +16,13 @@ def end_project(project_id: str):
     # Remove the network from the set of networks
     remove_network(network)
     # Remove the project to each user's project list
-    remove_project(user_ids=network.all_user_ids, project_id=network.project_id)
+    remove_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
     # Delete the project
     del network
 
 
 def add_network(network: Network):
-    project_id = network.project_id
+    project_id = network.get_project_id()
 
     if project_id not in Networks.networks.keys():
         Networks.networks[project_id] = network
@@ -32,7 +32,7 @@ def add_network(network: Network):
 
 
 def remove_network(network: Network):
-    project_id = network.project_id
+    project_id = network.get_project_id()
 
     if project_id in Networks.networks.keys():
         del Networks.networks[project_id]

@@ -26,8 +26,5 @@ class User:
         return self.__projects
 
 
-
-
-
 class Users:
     users = {}
