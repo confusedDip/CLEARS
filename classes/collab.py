@@ -1,20 +1,44 @@
 import time
 from collections import deque
 from itertools import combinations
-import pygraphviz as pgv
+# import pygraphviz as pgv
 
 from utilities.resource import get_resource
 from utilities.user import remove_project, add_project
 
 
+def from_dict(data):
+    return Context(
+        set(data["user_ids"]),
+        set(data["resource_ids"]),
+        set(data["parents"]),
+        set(data["children"])
+    )
+
+
 class Context:
 
-    def __init__(self, user_ids: set[str]):
+    def __init__(self, user_ids: set[str], resource_ids=None, parents=None, children=None):
+        if children is None:
+            children = set()
+        if resource_ids is None:
+            resource_ids = set()
+        if parents is None:
+            parents = set()
         self.__id: str = ''.join(sorted(user_ids))
         self.__user_ids: set[str] = set(user_ids.copy())
-        self.__resource_ids: set[str] = set()
-        self.__parents: set[Context] = set()
-        self.__children: set[Context] = set()
+        self.__resource_ids: set[str] = resource_ids
+        self.__parents: set[str] = parents
+        self.__children: set[str] = children
+
+    def to_dict(self):
+        return {
+            "id": self.__id,
+            "user_ids": list(self.__user_ids),
+            "resource_ids": list(self.__resource_ids),
+            "parents": list(self.__parents),
+            "children": list(self.__children)
+        }
 
     def get_id(self) -> str:
         return self.__id
@@ -25,11 +49,17 @@ class Context:
     def get_resources(self) -> set[str]:
         return self.__resource_ids
 
-    def get_parents(self):
+    def get_parents(self) -> set[str]:
         return self.__parents
 
-    def get_children(self):
+    def add_parents(self, new_parent: str):
+        self.__parents.add(new_parent)
+
+    def get_children(self) -> set[str]:
         return self.__children
+
+    def add_children(self, new_child: str):
+        self.__children.add(new_child)
 
     def add_resource(self, resource: str):
         self.__resource_ids.add(resource)
@@ -41,20 +71,29 @@ class Context:
         context_str = (f"{self.__id}\n" + "{" + ', '.join(sorted(self.__user_ids)) + "}" +
                        "\n" "[" + ', '.join(sorted(self.__resource_ids)) + "]")
         # print(context_str)
+        return "{" + ', '.join(sorted(self.__user_ids)) + "}"
         return context_str
 
 
 class Network:
 
-    def __init__(self, user_ids: set[str], project_id: str):
+    def __init__(self, user_ids: set[str], project_id: str, root_context=None, contexts=dict()):
 
         # Initialize the Network object
         self.__project_id = project_id
         self.__all_user_ids: set[str] = user_ids
-        self.__root_context: Context | None = None
-        self.__contexts: dict[str, Context] = {}
+        self.__root_context: str = root_context
+        self.__contexts: dict[str, Context] = contexts
         # Create the network
-        self.create_network()
+        # self.create_network()
+
+    def to_dict(self):
+        return {
+            "project_id": self.__project_id,
+            "all_user_ids": list(self.__all_user_ids),
+            "root_context": self.__root_context,
+            "contexts": {key: context.to_dict() for key, context in self.__contexts.items()}
+        }
 
     def get_project_id(self) -> str:
         return self.__project_id
@@ -62,11 +101,11 @@ class Network:
     def get_all_user_ids(self) -> set[str]:
         return self.__all_user_ids
 
-    def get_root_context(self) -> Context | None:
+    def get_root_context(self) -> str:
         return self.__root_context
 
     def set_root_context(self, context):
-        self.__root_context = context
+        self.__root_context = context.get_id()
 
     def add_new_user(self, user: str):
         # Update the set of involved users
@@ -74,7 +113,7 @@ class Network:
         # Expand the network
         self.expand_network()
         # Add the project to new user's project list
-        add_project(user_ids=self.__all_user_ids, project_id=self.__project_id, user_id=user)
+        # add_project(user_ids=self.__all_user_ids, project_id=self.__project_id, user_id=user)
 
     def add_context(self, context: Context):
 
@@ -87,24 +126,17 @@ class Network:
         if context.get_id() in self.__contexts.keys():
 
             # Remove links from parents
-            for parent in context.get_parents():
-                parent.get_children().remove(context)
+            for parent_id in context.get_parents():
+                parent = self.__contexts[parent_id]
+                parent.get_children().remove(context.get_id())
 
             # Remove links from children
-            for child in context.get_children():
-                child.get_parents().remove(context)
+            for child_id in context.get_children():
+                child = self.__contexts[child_id]
+                child.get_parents().remove(context.get_id())
 
             # Delete the context
             del self.__contexts[context.get_id()]
-
-    def create_network(self):
-
-        root_context = Context(self.__all_user_ids)
-        self.add_context(root_context)
-        self.set_root_context(root_context)
-
-        # Recursively generate child contexts with one less user until leaf level with two users
-        self.generate_child_contexts(root_context, len(self.__all_user_ids))
 
     def expand_network(self):
 
@@ -113,19 +145,23 @@ class Network:
         self.set_root_context(new_root_context)
 
         # Recursively generate child contexts with one less user until leaf level with two users
-        self.generate_child_contexts(new_root_context, len(self.__all_user_ids))
+        self.generate_child_contexts(new_root_context.get_id(), len(self.__all_user_ids))
 
-    def generate_child_contexts(self, parent_context: Context, num_users: int):
+    def generate_child_contexts(self, current_context_id: str, num_users: int):
 
         if num_users <= 2:
             return
 
+        current_context = self.__contexts[current_context_id]
+
         # Generate child contexts with one less user
-        user_combinations = [list(comb) for comb in combinations(parent_context.get_users(), num_users - 1)]
+        user_combinations = [list(comb)
+                             for comb in combinations(current_context.get_users(), num_users - 1)]
 
         for child_users in user_combinations:
 
             child_context_id = ''.join(sorted(child_users))
+            current_context.add_children(child_context_id)
 
             if child_context_id in self.__contexts.keys():
                 child_context = self.__contexts[child_context_id]
@@ -134,15 +170,15 @@ class Network:
                 child_context = Context(set(child_users))
                 self.add_context(child_context)
 
-            parent_context.get_children().add(child_context)
-            child_context.get_parents().add(parent_context)
+            child_context.add_parents(current_context_id)
 
-            self.generate_child_contexts(child_context, num_users - 1)
+            self.generate_child_contexts(child_context.get_id(), num_users - 1)
 
     def print_network(self):
 
-        root_context = self.__root_context
+        root_context_id = self.__root_context
 
+        root_context = self.__contexts[root_context_id]
         queue = deque([root_context])
         visited = {}
 
@@ -154,45 +190,46 @@ class Network:
 
         while queue:
             current_context = queue.popleft()
-            for child_context in current_context.get_children():
-                if child_context not in visited.keys():
+            for child_context_id in current_context.get_children():
+                if child_context_id not in visited.keys():
+                    child_context = self.__contexts[child_context_id]
                     print(child_context.print_context())
                     queue.append(child_context)
                     visited[child_context] = True
 
-    def visualize_network(self):
-        g = pgv.AGraph(directed=True)
+    # def visualize_network(self):
+    #     g = pgv.AGraph(directed=True)
+    #
+    #     root_context = self.__root_context
+    #     queue = deque([root_context])
+    #     visited = {}
+    #
+    #     while queue:
+    #         current_context = queue.popleft()
+    #         for child_context in current_context.get_children():
+    #             g.add_edge(current_context.print_context(), child_context.print_context())
+    #             if child_context not in visited.keys():
+    #                 queue.append(child_context)
+    #                 visited[child_context] = True
+    #
+    #     g.layout(prog='dot')
+    #     g.draw(f'collaboration_network_{time.time()}.png')
+    #     print("Collaboration network visualization saved")
 
-        root_context = self.__root_context
-        queue = deque([root_context])
-        visited = {}
-
-        while queue:
-            current_context = queue.popleft()
-            for child_context in current_context.get_children():
-                g.add_edge(current_context.print_context(), child_context.print_context())
-                if child_context not in visited.keys():
-                    queue.append(child_context)
-                    visited[child_context] = True
-
-        g.layout(prog='dot')
-        g.draw(f'collaboration_network_{time.time()}.png')
-        print("Collaboration network visualization saved")
-
-    def share_resource(self, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str]):
+    def share_resource(self, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str]) -> (str, set[str]):
 
         # Allow only the owner to share
         resource_to_share = get_resource(resource_id=resource_id_to_share)
 
-        if from_user_id != resource_to_share.get_owner():
-            print(f"Error: Only owner of a resource can share it!")
-            return
+        # if from_user_id != resource_to_share.get_owner():
+        #     print(f"Error: Only owner of a resource can share it!")
+        #     return
 
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
 
         # Start with the root context and do a Breadth-First-Search (BFS)
-        root_context = self.__root_context
+        root_context = self.__contexts[self.__root_context]
         queue = deque([root_context])
         visited = {}
 
@@ -218,8 +255,9 @@ class Network:
             # Continue the search
             else:
 
-                for child_context in current_context.get_children():
+                for child_context_id in current_context.get_children():
 
+                    child_context = self.__contexts[child_context_id]
                     # Prune the subtrees where the sharer is not present
                     if from_user_id in child_context.get_users():
                         if child_context not in visited.keys():
@@ -230,6 +268,7 @@ class Network:
         # The context to share is the one with all involved users
         if already_shared_context is None:
             correct_context = ''.join(sorted(involved_users))
+            correct_users = involved_users
 
         # If the resource is already shared
         # The context to share is the union on that context and the one with all involved users
@@ -240,8 +279,12 @@ class Network:
             correct_context = ''.join(sorted(correct_users))
 
         self.__contexts[correct_context].add_resource(resource_id_to_share)
-        print(f"Correct Context: {correct_context}")
+        # print(f"New Context: {''.join(sorted(involved_users))}, Existing Context: {already_shared_context.get_id()}")
+        # print(f"Correct Context: {correct_context}")
 
+        if already_shared_context is None:
+            return None, correct_users
+        return already_shared_context.get_id(), correct_users
         # self.visualize_network()
 
     def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str],
@@ -253,11 +296,13 @@ class Network:
         # Start with the root context and do a Breadth-First-Search (BFS)
 
         if root_context is None:
-            root_context = self.__root_context
+            root_context = self.__contexts[self.__root_context]
         queue = deque([root_context])
         visited = {}
 
-        correct_context_id = ''  # This is the context where the privileges should be re-shared after un-sharing
+        correct_context_id = None  # This is the context where the privileges should be re-shared after un-sharing
+        correct_users = {}
+        already_shared_context_id = None
 
         # The purpose is to find which context the resources are shared
         # The BFS Loop
@@ -267,7 +312,7 @@ class Network:
             if current_context.get_id() == correct_context_id:
                 current_context.add_resource(resource_id_to_unshare)
                 print(f"Resource {resource_id_to_unshare} is re-shared in {current_context.get_id()}")
-                return
+                return already_shared_context_id, correct_users
 
             users = current_context.get_users()
             resources = current_context.get_resources()
@@ -281,21 +326,23 @@ class Network:
 
                     current_context.remove_resource(resource_id_to_unshare)
                     print(f"Resource {resource_id_to_unshare} is unshared from {current_context.get_id()}")
+                    already_shared_context_id = current_context.get_id()
 
                     additional_users = users.difference(involved_users)
                     print(f"Additional Users: {additional_users}")
                     # If the context to unshare is a leaf node, then nothing else to do
                     if len(additional_users) == 0:
                         # self.visualize_network()
-                        return
+                        return already_shared_context_id, correct_users
 
                     correct_users = additional_users.union({from_user_id})
                     correct_context_id = ''.join(sorted(correct_users))
 
-            for child_context in current_context.get_children():
-                if child_context not in visited.keys():
+            for child_context_id in current_context.get_children():
+                if child_context_id not in visited.keys():
+                    child_context = self.__contexts[child_context_id]
                     queue.append(child_context)
-                    visited[child_context] = True
+                    visited[child_context_id] = True
 
     def remove_user(self, user_id: str):
 

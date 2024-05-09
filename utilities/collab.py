@@ -1,49 +1,258 @@
-from classes.collab import Network, Networks
+import json
+
+from classes.collab import Network, Networks, from_dict
 from utilities.user import get_user, add_project, remove_project
 from utilities.resource import get_resource
+import os
+import subprocess
 
 
-def start_project(user_ids: set[str], project_id: str):
-    network = Network(user_ids=user_ids, project_id=project_id)
-    # Add the network to the set of networks
-    add_network(network)
+def get_acl(file_path):
+    # Execute the getfacl command to retrieve the ACL
+    result = subprocess.run(['getfacl', file_path], capture_output=True, text=True)
+
+    # Check if the command executed successfully
+    if result.returncode == 0:
+        return result.stdout
+    else:
+        return f"Error: {result.stderr}"
+
+
+def set_acl(file_path, acl):
+    # Execute the setfacl command to set the ACL
+    result = subprocess.run(['setfacl', '-M', acl, file_path], capture_output=True, text=True)
+
+    # Check if the command executed successfully
+    if result.returncode == 0:
+        return "ACL set successfully"
+    else:
+        return f"Error: {result.stderr}"
+
+
+def dump_network_to_file(project_file: str, network: Network):
+    try:
+        # Create the project directory
+        with open(project_file, "w") as file:
+            json.dump(network.to_dict(), file, indent=4)
+        print(f"Project '{network.get_project_id()}' created/updated successfully.")
+
+    except FileExistsError:
+        print(f"Project '{network.get_project_id()}' already exists.")
+    except OSError as e:
+        print(f"Failed to create project '{network.get_project_id()}': {e}")
+
+
+def initiate_project(user_id: str, project_id: str):
+    # Model Tasks:
+    network = Network(user_ids={user_id}, project_id=project_id)
+
+    # OS Tasks:
+
+    # Define the base directory
+    base_dir = "/etc/project"
+
+    # Create the full path for the project
+    project_file = os.path.join(base_dir, project_id) + ".json"
+
+    # Dump the network to the project file
+    dump_network_to_file(project_file, network)
+
     # Add the project to each user's project list
-    add_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
+    # add_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
+
+
+def invite_collaborator(user_id: str, project_id: str, users: set[str]):
+    # Define the base directory
+    base_dir = "/etc/project"
+
+    # Create the full path for the project
+    project_file = os.path.join(base_dir, project_id) + ".json"
+
+    try:
+        # Read all lines from the project file
+        with open(project_file, "r") as file:
+            data = json.load(file)
+            # print(data)
+            network = Network(
+                user_ids=set(data['all_user_ids']),
+                project_id=data['project_id'],
+                root_context=data['root_context'],
+                contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
+            )
+
+        for new_user_id in users:
+            network.add_new_user(user=new_user_id)
+
+        dump_network_to_file(project_file, network)
+
+    except FileNotFoundError:
+        print("Error: Project not found.")
+    except Exception as e:
+        print(f"Error: {e}")
 
 
 def end_project(project_id: str):
-    network = get_network(project_id)
-    # Remove the network from the set of networks
-    remove_network(network)
-    # Remove the project to each user's project list
-    remove_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
-    # Delete the project
-    del network
+    #TODO
+    # network = get_network(project_id)
+    # # Remove the network from the set of networks
+    # remove_network(network)
+    # # Remove the project to each user's project list
+    # remove_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
+    # # Delete the project
+    # del network
+
+    project_file_path = "/etc/project"
+
+    # Flag to indicate if the project ID was found
+    project_found = False
+
+    try:
+        # Read all lines from the project file
+        with open(project_file_path, "r") as file:
+            lines = file.readlines()
+
+        # Open the project file in write mode to update it
+        with open(project_file_path, "w") as file:
+            # Check each line in the file
+            for line in lines:
+                # Check if the line starts with the project ID
+                if line.startswith(f"{project_id}:"):
+                    # Project ID found, set the flag
+                    project_found = True
+                else:
+                    # Write the line back to the file (excluding the project to be ended)
+                    file.write(line)
+
+        # Check if the project ID was found
+        if project_found:
+            print(f"Project '{project_id}' ended successfully.")
+        else:
+            print(f"Error: Project ID '{project_id}' not found.")
+
+    except FileNotFoundError:
+        print("Error: Project file not found.")
+    except Exception as e:
+        print(f"Error: {e}")
 
 
-def add_network(network: Network):
-    project_id = network.get_project_id()
+def share_privilege(project_id: str, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str]):
+    # Define the base directory
+    base_dir = "/etc/project"
 
-    if project_id not in Networks.networks.keys():
-        Networks.networks[project_id] = network
-        print(f"Collaboration Network for Project {project_id} added")
-    else:
-        print(f"Error: Collaboration Network for Project {project_id} already exists")
+    # Create the full path for the project
+    project_file = os.path.join(base_dir, project_id) + ".json"
+
+    try:
+        # Read all lines from the project file
+        with open(project_file, "r") as file:
+            data = json.load(file)
+            network = Network(
+                user_ids=set(data['all_user_ids']),
+                project_id=data['project_id'],
+                root_context=data['root_context'],
+                contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
+            )
+
+        already_shared_context, correct_users = (
+            network.share_resource(from_user_id, resource_id_to_share, to_user_ids))
+
+        if already_shared_context is not None:
+            # Remove rwx access to the group in the ACL of the file
+            already_shared_context = project_id + already_shared_context
+            subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_id_to_share])
+            print(f"Group '{already_shared_context}' removed rwx access to file '{resource_id_to_share}'.")
+
+        # Now assign to the correct context
+        correct_context = project_id + ''.join(sorted(correct_users))
+
+        with open("/etc/group", "r") as file:
+            existing_groups = file.read().splitlines()
+            group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+
+            # Add the new group if it doesn't exist
+        if not group_exists:
+            subprocess.run(["sudo", "groupadd", correct_context])
+            print(f"Group '{correct_context}' added.")
+        else:
+            print(f"Group '{correct_context}' already exists.")
+
+        # Assign users to the group
+        for user in correct_users:
+            subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
+            print(f"User '{user}' assigned to group '{correct_context}'.")
+
+        # Assign rwx access to the group in the ACL of the file
+        subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
+        print(f"Group '{correct_context}' granted rwx access to file '{resource_id_to_share}'.")
+
+        # Dump the network to the project file
+        dump_network_to_file(project_file, network)
+
+    except FileNotFoundError:
+        print("Error: Project not found.")
+
+    except Exception as e:
+        print(f"Error: {e}")
 
 
-def remove_network(network: Network):
-    project_id = network.get_project_id()
+def unshare_privilege(project_id: str, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str]):
+    # Define the base directory
+    base_dir = "/etc/project"
 
-    if project_id in Networks.networks.keys():
-        del Networks.networks[project_id]
-        print(f"Collaboration Network for Project {project_id} removed")
-    else:
-        print(f"Error: Collaboration Network for Project {project_id} does not exist")
+    # Create the full path for the project
+    project_file = os.path.join(base_dir, project_id) + ".json"
 
+    try:
+        # Read all lines from the project file
+        with open(project_file, "r") as file:
+            data = json.load(file)
+            network = Network(
+                user_ids=set(data['all_user_ids']),
+                project_id=data['project_id'],
+                root_context=data['root_context'],
+                contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
+            )
 
-def get_network(project_id: str) -> Network:
-    if project_id in Networks.networks.keys():
-        return Networks.networks[project_id]
+        already_shared_context, correct_users = (
+            network.unshare_resource(from_user_id, resource_id_to_unshare, to_user_ids))
+
+        if already_shared_context is not None:
+            # Remove rwx access to the group in the ACL of the file
+            already_shared_context = project_id + already_shared_context
+            subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_id_to_unshare])
+            print(f"Group '{already_shared_context}' removed rwx access to file '{resource_id_to_unshare}'.")
+
+        # Now assign to the correct context
+        correct_context = project_id + ''.join(sorted(correct_users))
+
+        with open("/etc/group", "r") as file:
+            existing_groups = file.read().splitlines()
+            group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+
+            # Add the new group if it doesn't exist
+        if not group_exists:
+            subprocess.run(["sudo", "groupadd", correct_context])
+            print(f"Group '{correct_context}' added.")
+        else:
+            print(f"Group '{correct_context}' already exists.")
+
+        # Assign users to the group
+        for user in correct_users:
+            subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
+            print(f"User '{user}' assigned to group '{correct_context}'.")
+
+        # Assign rwx access to the group in the ACL of the file
+        subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_unshare])
+        print(f"Group '{correct_context}' granted rwx access to file '{resource_id_to_unshare}'.")
+
+        # Dump the network to the project file
+        dump_network_to_file(project_file, network)
+
+    except FileNotFoundError:
+        print("Error: Project not found.")
+
+    except Exception as e:
+        print(f"Error: {e}")
 
 
 def can_access(requester_id: str, resource_id: str) -> bool:

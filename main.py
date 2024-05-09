@@ -1,69 +1,57 @@
-from utilities.collab import get_network, can_access, start_project
+import os
+
+from utilities.collab import can_access, initiate_project, invite_collaborator, share_privilege, unshare_privilege
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource
 
 
 def main():
-    # Create four users: A, B, C, D
-    create_user(user_id="A")
-    create_user(user_id="B")
-    create_user(user_id="C")
-    create_user(user_id="D")
+    creator = os.getlogin()
 
-    # Give the users some resources to own
-    for uid in {"A", "B", "C", "D"}:
-        user = get_user(user_id=uid)
-        for i in range(1, 5):
-            r = create_resource(resource_id=f"{uid}{i}", owner=uid)
-            user.add_owned_resource(r)
+    # t = 1: Alex starts a project P1
+    creator = "Alex"
+    # initiate_project(user_id=creator, project_id="P1")
 
-    # Start a project P1 with A, B, C
-    start_project(user_ids={"A", "B", "C"}, project_id="P1")
-    # Start a project P2 with A, D
-    start_project(user_ids={"A", "D"}, project_id="P2")
+    # t = 2: Alex invites collaborator Bailey and Cathy
+    # invite_collaborator(user_id=creator, project_id="P1", users={"Bailey"})
+    # invite_collaborator(user_id=creator, project_id="P1", users={"Cathy"})
 
-    # Obtain the network for project P1
-    network_p1 = get_network("P1")
-    network_p1.visualize_network()
+    # t = 3: Alex shares resource Alex_1 with Bailey and Cathy
+    # share_privilege(project_id="P1", from_user_id=creator, resource_id_to_share="/home/pwn_dp/papers.txt",
+    #                 to_user_ids={"Bailey"})
+    # share_privilege(project_id="P1", from_user_id=creator, resource_id_to_share="/home/pwn_dp/papers.txt",
+    #                 to_user_ids={"Cathy"})
 
-    # Invite D to the project P1
-    network_p1.add_new_user("D")
-    network_p1.visualize_network()
+    # t = 4: Alex shares resources Alex_2 Alex_3 with Bailey and Cathy
+    # share_privilege(project_id="P1", from_user_id=creator, resource_id_to_share="/home/pwn_dp/references.txt",
+    #                 to_user_ids={"Bailey", "Cathy"})
+    # share_privilege(project_id="P1", from_user_id=creator, resource_id_to_share="/home/pwn_dp/data.json",
+    #                 to_user_ids={"Bailey", "Cathy"})
 
-    network_p1.share_resource("A", "A1", {"B", "C", "D"})
-    network_p1.visualize_network()
+    # t = 5: Alex shares Alex_4 only with Bailey
+    # share_privilege(project_id="P1", from_user_id=creator, resource_id_to_share="/home/pwn_dp/data2.json",
+    #                 to_user_ids={"Bailey"})
+    #
+    # # t = 6: Bailey shares Bailey_1 only with Cathy
+    # share_privilege(project_id="P1", from_user_id="Bailey", resource_id_to_share="/home/pwn_dp/bailey_results.json",
+    #                 to_user_ids={"Cathy"})
 
-    network_p1.share_resource("A", "A2", {"B", "C", "D"})
-    network_p1.visualize_network()
+    # t = 7: Alex invites collaborator Drew
+    # invite_collaborator(user_id=creator, project_id="P1", users={"Drew"})
 
-    network_p1.share_resource("A", "A3", {"B", "C"})
-    network_p1.visualize_network()
+    # t = 8: Alex shares Alex_3 with Drew (Example of Privilege Elevation)
+    # share_privilege(project_id="P1", from_user_id=creator, resource_id_to_share="/home/pwn_dp/data.json",
+    #                 to_user_ids={"Drew"})
 
-    network_p1.unshare_resource("A", "A1", {"B", "C"})
-    network_p1.visualize_network()
+    # t = 9: Bailey shares Bailey_1 with Drew (Example of Privilege Elevation)
+    # share_privilege(project_id="P1", from_user_id="Bailey", resource_id_to_share="/home/pwn_dp/bailey_results.json",
+    #                 to_user_ids={"Drew"})
 
-    network_p1.unshare_resource("A", "A2", {"B"})
-    network_p1.visualize_network()
+    # t = 10: Alex un-shares Alex_3 with Drew (Example of Privilege Descent)
+    # unshare_privilege(project_id="P1", from_user_id=creator, resource_id_to_unshare="/home/pwn_dp/data.json",
+    #                   to_user_ids={"Drew"})
 
-    network_p1.share_resource("A", "A3", {"B"})
-    network_p1.visualize_network()
-
-    network_p1.share_resource("D", "D1", {"A", "B"})
-    network_p1.visualize_network()
-
-    print(can_access("A", "A2"))  # True
-    print(can_access("B", "A2"))  # False
-    print(can_access("C", "A2"))  # True
-    print(can_access("A", "B1"))  # False
-    print(can_access("D", "A2"))  # True
-
-    network_p1.remove_user("D")
-
-    network_p1.visualize_network()
-
-    print(can_access("D", "A2"))  # False
-    print(can_access("D", "A2"))  # False
-    print(can_access("A", "D1"))  # False
+    # t = 11: Alex removes Drew from the project
 
 
 if __name__ == "__main__":
