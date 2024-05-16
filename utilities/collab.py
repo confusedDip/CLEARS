@@ -110,8 +110,8 @@ def can_share(from_username: str, resource_id: str, to_username: str, project_id
     :return: Allow (True) or Deny (False)
     """
 
-    from_user_id = pwd.getpwnam(from_username)[0]
-    to_user_id = pwd.getpwnam(to_username)[0]
+    from_user_id = pwd.getpwnam(from_username).pw_uid
+    to_user_id = pwd.getpwnam(to_username).pw_uid
 
     # Step 1: Obtain the owner information
     resource_path = os.path.abspath(resource_id)
@@ -142,7 +142,7 @@ def can_share(from_username: str, resource_id: str, to_username: str, project_id
                     print(f"Sharing Error: {from_username} and {to_username} are not collaborators within {project_id}")
                     return False
                 else:
-                    print(f"Sharing {resource_path} Allowed: From {from_username} and {to_username}")
+                    print(f"Sharing {resource_path} Allowed: From {from_username} to {to_username}")
                     return True
 
     except FileNotFoundError:

@@ -16,14 +16,14 @@ def main():
         (4) share():
     """
 
-    create_project(project_id="P2")
+    #create_project(project_id="P2")
 
-    add_collaborator(project_id="P2", users={"pwn_dp", "bailey", "cathy"})
+   # add_collaborator(project_id="P2", users={"pwn_dp", "bailey", "cathy"})
 
-   # can_share(from_username="pwn_dp", resource_id="data.json", to_username="Bailey", project_id="P2")
-   # can_share(from_username="pwn_dp", resource_id="data2.json", to_username="Cathy", project_id="P2")
-    #can_share(from_username="Bailey", resource_id="data2.json", to_username="Cathy", project_id="P2")
-    #can_share(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
+    can_share(from_username="pwn_dp", resource_id="data.json", to_username="bailey", project_id="P2")
+    can_share(from_username="pwn_dp", resource_id="data2.json", to_username="cathy", project_id="P2")
+    can_share(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
+    can_share(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
 
 
 
