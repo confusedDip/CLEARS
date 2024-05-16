@@ -3,6 +3,8 @@
 import os
 import sys
 
+sys.path.append('/etc/authzmodel')
+
 from utilities.collab import can_access, create_project, add_collaborator, can_share, can_unshare, share, unshare
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource
