@@ -290,7 +290,7 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
                         collaborators = context.get_users()
                         if str(to_user_id) in collaborators and str(from_user_id) in collaborators:
                             resources = context.get_resources()
-                            if resource_id in resources:
+                            if resource_path in resources:
                                 print(f"Un-Sharing {resource_path} Allowed: From {from_username} to {to_username}")
                                 return True
 
