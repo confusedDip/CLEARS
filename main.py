@@ -1,4 +1,7 @@
+#!/usr/bin/python3
+
 import os
+import sys
 
 from utilities.collab import can_access, create_project, add_collaborator, can_share, can_unshare, share, unshare
 from utilities.user import create_user, get_user
@@ -26,28 +29,31 @@ def main():
         (8) end_project():
     """
 
-    create_project(project_id="P2")
+    args = sys.argv
+    print(args)
 
-    add_collaborator(project_id="P2", users={"pwn_dp", "bailey", "cathy"})
-
-    # can_share(from_username="pwn_dp", resource_id="data.json", to_username="bailey", project_id="P2")
-    # can_share(from_username="pwn_dp", resource_id="data2.json", to_username="cathy", project_id="P2")
-    # can_share(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
-    # can_share(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
-
-    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"bailey", "cathy"})
-    add_collaborator(project_id="P2", users={"sefcom"})
-    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"sefcom"})
-
-    # can_unshare(from_username="pwn_dp", resource_id="data.json", to_username="bailey", project_id="P2")
-    # can_unshare(from_username="pwn_dp", resource_id="data2.json", to_username="cathy", project_id="P2")
-    # can_unshare(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
-    # can_unshare(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
-    # can_unshare(from_username="pwn_dp", resource_id="data.json", to_username="sefcom", project_id="P2")
-
-    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data2.json", to_usernames={"bailey", "sefcom"})
-    unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"cathy"})
-    unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"bailey"})
+    # create_project(project_id="P2")
+    #
+    # add_collaborator(project_id="P2", users={"pwn_dp", "bailey", "cathy"})
+    #
+    # # can_share(from_username="pwn_dp", resource_id="data.json", to_username="bailey", project_id="P2")
+    # # can_share(from_username="pwn_dp", resource_id="data2.json", to_username="cathy", project_id="P2")
+    # # can_share(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
+    # # can_share(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
+    #
+    # share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"bailey", "cathy"})
+    # add_collaborator(project_id="P2", users={"sefcom"})
+    # share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"sefcom"})
+    #
+    # # can_unshare(from_username="pwn_dp", resource_id="data.json", to_username="bailey", project_id="P2")
+    # # can_unshare(from_username="pwn_dp", resource_id="data2.json", to_username="cathy", project_id="P2")
+    # # can_unshare(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
+    # # can_unshare(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
+    # # can_unshare(from_username="pwn_dp", resource_id="data.json", to_username="sefcom", project_id="P2")
+    #
+    # share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data2.json", to_usernames={"bailey", "sefcom"})
+    # unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"cathy"})
+    # unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"bailey"})
 
 
     # t = 2: Alex invites collaborator Bailey and Cathy
