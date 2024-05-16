@@ -359,9 +359,9 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
             subprocess.run(["sudo", "groupadd", correct_context])
 
         # Assign users to the group
-        for user in correct_users:
+        for user_id in correct_users:
+            user = pwd.getpwuid(int(user_id))[0]
             subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
-            print(f"User '{user}' assigned to group '{correct_context}'.")
 
         # Assign rwx access to the group in the ACL of the file
         subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
