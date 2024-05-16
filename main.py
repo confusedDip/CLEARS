@@ -46,7 +46,7 @@ def main():
     # can_unshare(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
     # can_unshare(from_username="pwn_dp", resource_id="data.json", to_username="sefcom", project_id="P2")
 
-    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data2.json", to_usernames={"bailey, sefcom"})
+    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data2.json", to_usernames={"bailey", "sefcom"})
     unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"cathy"})
     unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"bailey"})
 

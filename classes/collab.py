@@ -313,7 +313,7 @@ class Network:
         correct_users = set()
         already_shared_context = None
 
-        for context_id, context in self.get_contexts():
+        for context_id, context in self.get_contexts().items():
 
             users = context.get_users()
             resources = context.get_resources()
