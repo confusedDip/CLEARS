@@ -48,9 +48,9 @@ def main():
         print("Invalid Input: Please refer `./main.py help` for documentation")
         return
 
-    if len(sys.argv) == 2 and sys.argv[1].lower() != "help":
-        print("Invalid Input: Please refer `./main.py help` for documentation")
-        return
+    # if len(sys.argv) == 2 and sys.argv[1].lower() != "help":
+    #    print("Invalid Input: Please refer `./main.py help` for documentation")
+    #    return
 
     if len(sys.argv) == 2 and sys.argv[1].lower() == "help":
         # print_help()
