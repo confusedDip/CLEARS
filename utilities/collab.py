@@ -88,8 +88,9 @@ def add_collaborator(project_id: str, users: set[str]):
             )
 
         for new_username in users:
-            new_user_id = pwd.getpwnam(new_username)[0]
+            new_user_id = pwd.getpwnam(new_username).pw_uid
             network.add_new_user(user=str(new_user_id))
+            print(f"{new_username}(uid={new_user_id}) successfully added to {project_id}")
 
         dump_network_to_file(project_file, network)
 
