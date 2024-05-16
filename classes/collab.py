@@ -262,8 +262,8 @@ class Network:
         correct_context.add_resource(resource_id_to_share)
 
         if already_shared_context is None:
-            return None, correct_users
-        return already_shared_context.get_users(), correct_users
+            return None, correct_users, self
+        return already_shared_context.get_users(), correct_users, self
 
         # # Start with the root context and do a Breadth-First-Search (BFS)
         # root_context = self.__contexts[self.__root_context]
