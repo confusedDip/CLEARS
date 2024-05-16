@@ -185,7 +185,7 @@ def share(project_id: str, from_username: str, resource_id_to_share: str, to_use
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
             subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
 
-            already_shared_unames = set(pwd.getpwuid(already_shared_uid)[0] for already_shared_uid in already_shared_users)
+            already_shared_unames = set(pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
             print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
 
         # Now assign to the correct context
@@ -207,7 +207,7 @@ def share(project_id: str, from_username: str, resource_id_to_share: str, to_use
 
         # Assign rwx access to the group in the ACL of the file
         subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
-        correct_unames = set(pwd.getpwuid(correct_user)[0] for correct_user in correct_users)
+        correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
         print(f"Group '{correct_unames}' granted rwx access to file '{resource_path}'.")
 
         # Dump the network to the project file
