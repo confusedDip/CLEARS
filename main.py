@@ -12,7 +12,8 @@ def main():
         (1) create_project(): Takes a project id and registers the project in the system
         (2) add_collaborator(): Adds set of collaborators to an existing project
         (3) can_share(): Takes from and to user ids and resource local path, and the project id to authorize the sharing
-        (4) share():
+        (4) share(): Authorizes via can_share(), then performs the share()
+        (5)
     """
 
     # create_project(project_id="P2")

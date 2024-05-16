@@ -153,7 +153,25 @@ def can_share(from_username: str, resource_id: str, to_username: str, project_id
         return False
 
 
-def share(project_id: str, from_username: str, resource_id_to_share: str, to_usernames: set[str]):
+def share(from_username: str, resource_id_to_share: str, to_usernames: set[str], project_id: str, ):
+    """
+    This is the user action share that first authorizes the action with respect to can_share and then performs the share
+    :param from_username: which user is requesting to share?
+    :param resource_id_to_share: what resource (privilege) is concerned?
+    :param to_usernames: to which users is it being shared?
+    :param project_id: under which project context the sharing is taking place?
+    :return:
+    """
+    can_share_flag = True
+    for to_username in to_usernames.copy():
+        if not can_share(from_username, resource_id_to_share, to_username, project_id):
+            to_usernames.remove(to_username)
+            can_share_flag = False
+
+    if not can_share_flag:
+        print("One of more (from_user, resource, to_user) sharing query is not permitted")
+        return
+
     # Define the base directory
     base_dir = "/etc/project"
 
