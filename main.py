@@ -1,6 +1,6 @@
 import os
 
-from utilities.collab import can_access, create_project, add_collaborator, can_share, share, unshare_privilege
+from utilities.collab import can_access, create_project, add_collaborator, can_share, can_unshare, share, unshare_privilege
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource
 
@@ -13,7 +13,7 @@ def main():
         (2) add_collaborator(): Adds set of collaborators to an existing project
         (3) can_share(): Takes from and to user ids and resource local path, and the project id to authorize the sharing
         (4) share(): Authorizes via can_share(), then performs the share()
-        (5)
+        (5) remove_collaborator():
     """
 
     # create_project(project_id="P2")
@@ -28,7 +28,13 @@ def main():
     # share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"bailey", "cathy"})
     # add_collaborator(project_id="P2", users={"sefcom"})
 
-    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"sefcom"})
+    # share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"sefcom"})
+
+    can_unshare(from_username="pwn_dp", resource_id="data.json", to_username="bailey", project_id="P2")
+    can_unshare(from_username="pwn_dp", resource_id="data2.json", to_username="cathy", project_id="P2")
+    can_unshare(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
+    can_unshare(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
+    can_unshare(from_username="pwn_dp", resource_id="data.json", to_username="sefcom", project_id="P2")
 
     # t = 2: Alex invites collaborator Bailey and Cathy
     # invite_collaborator(user_id=creator, project_id="P1", users={"Bailey"})

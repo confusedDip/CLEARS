@@ -237,6 +237,74 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         print(f"Error: {e}")
 
 
+def can_unshare(from_username: str, resource_id: str, to_username: str, project_id: str) -> bool:
+    """
+    This is the un-sharing authorization relation that supports admin defined policies
+    :param from_username: which user is requesting to unshare?
+    :param resource_id: what resource (privilege) is concerned?
+    :param to_username: to whom is it being unshared?
+    :param project_id: under which project context the unsharing is taking place?
+    :return: Allow (True) or Deny (False)
+    """
+
+    from_user_id = pwd.getpwnam(from_username).pw_uid
+    to_user_id = pwd.getpwnam(to_username).pw_uid
+
+    # Step 1: Obtain the owner information
+    resource_path = os.path.abspath(resource_id)
+    resource_metadata = os.stat(resource_path)
+    owner_uid = resource_metadata.st_uid
+    owner_name = pwd.getpwuid(owner_uid)[0]
+
+    # Step 2: Obtain the user list of the project
+    # Define the base directory
+    base_dir = "/etc/project"
+
+    # Create the full path for the project
+    project_file = os.path.join(base_dir, project_id) + ".json"
+
+    try:
+        # Read all lines from the project file
+        with open(project_file, "r") as file:
+            data = json.load(file)
+            network = Network(
+                user_ids=set(data['all_user_ids']),
+                project_id=data['project_id'],
+                root_context=data['root_context'],
+                contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
+            )
+
+            collaborators = data['all_user_ids']
+
+            # Check for the two constraints
+            if owner_uid != from_user_id:
+                print(f"Un-Sharing Error: The requesting user {owner_name} is not the owner of the resource")
+                return False
+            else:
+                if (str(from_user_id) not in collaborators) or (str(to_user_id) not in collaborators):
+                    print(f"Un-Sharing Error: {from_username} and {to_username} are not collaborators within {project_id}")
+                    return False
+                else:
+                    # Check if the privilege has been previously shared or not!
+                    for context_id, context in network.get_contexts().items():
+                        collaborators = context.get_users()
+                        if str(to_user_id) in collaborators and str(from_user_id) in collaborators:
+                            resources = context.get_resources()
+                            if resource_id in resources:
+                                print(f"Un-Sharing {resource_path} Allowed: From {from_username} to {to_username}")
+                                return True
+
+                    print(f"Un-Sharing Error: {resource_path} was never shared with {to_username} within {project_id}")
+                    return False
+
+    except FileNotFoundError:
+        print(f"Un-Sharing Error: Project {project_id} not found.")
+        return False
+    except Exception as e:
+        print(f"Un-Sharing Error: {e}")
+        return False
+
+
 def unshare_privilege(project_id: str, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str]):
     # Define the base directory
     base_dir = "/etc/project"

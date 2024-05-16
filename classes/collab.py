@@ -120,6 +120,9 @@ class Network:
         if context.get_id() not in self.__contexts.keys():
             self.__contexts[context.get_id()] = context
 
+    def get_contexts(self) -> dict[str, Context]:
+        return self.__contexts
+
     def del_context(self, context: Context):
 
         print(f"Context to be deleted: {context.get_id()}")
