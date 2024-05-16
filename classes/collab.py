@@ -238,8 +238,12 @@ class Network:
         # If the resource is already not shared
         # The context to share is the one with all involved users
         if already_shared_context is None:
-            correct_context = Context(user_ids=involved_users)
-            self.add_context(correct_context)
+            correct_context_id = ''.join(sorted(involved_users))
+            if correct_context_id in self.__contexts.keys():
+                correct_context = self.__contexts[correct_context_id]
+            else:
+                correct_context = Context(user_ids=involved_users)
+                self.add_context(correct_context)
             correct_users = involved_users
 
         # If the resource is already shared
@@ -248,9 +252,13 @@ class Network:
         else:
             already_shared_users = already_shared_context.get_users()
             correct_users = involved_users.union(already_shared_users)
-            correct_context = ''.join(sorted(correct_users))
+            correct_context_id = ''.join(sorted(correct_users))
+            if correct_context_id in self.__contexts.keys():
+                correct_context = self.__contexts[correct_context_id]
+            else:
+                correct_context = Context(correct_users)
 
-        self.__contexts[correct_context.get_id()].add_resource(resource_id_to_share)
+        correct_context.add_resource(resource_id_to_share)
 
         if already_shared_context is None:
             return None, correct_users

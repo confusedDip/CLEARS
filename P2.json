@@ -1,0 +1,23 @@
+{
+    "project_id": "P2",
+    "all_user_ids": [
+        "1001",
+        "1000",
+        "1003",
+        "1002"
+    ],
+    "root_context": null,
+    "contexts": {
+        "100110021003": {
+            "id": "100110021003",
+            "user_ids": [
+                "1001",
+                "1003",
+                "1002"
+            ],
+            "resource_ids": [],
+            "parents": [],
+            "children": []
+        }
+    }
+}

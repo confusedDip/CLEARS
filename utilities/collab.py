@@ -201,7 +201,7 @@ def share(project_id: str, from_username: str, resource_id_to_share: str, to_use
 
         # Assign users to the group
         for user_id in correct_users:
-            user = pwd.getpwuid(user_id)[0]
+            user = pwd.getpwuid(int(user_id))[0]
             subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
             # print(f"User '{user}' assigned to group '{correct_context}'.")
 
