@@ -305,6 +305,14 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
 
 
 def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[str], project_id: str):
+    """
+    This is the user action un-share that first authorizes the action with respect to can_unshare and then performs
+    the un-share
+    :param from_username: which user is requesting to un-share?
+    :param resource_id_to_unshare: what resource (privilege) is concerned?
+    :param to_usernames: to which users is it being un-shared?
+    :param project_id: under which project context the sharing is taking place?
+    """
 
     can_unshare_flag = True
     for to_username in to_usernames.copy():

@@ -20,7 +20,7 @@ def main():
         (5) can_unshare():
             Takes from and to user ids and resource local path, and the project id to authorize the un-sharing
         (6) unshare():
-
+            Authorizes via can_unshare(), then performs the unshare()
         (7) remove_collaborator():
 
         (8) end_project():
