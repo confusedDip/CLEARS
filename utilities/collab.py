@@ -153,51 +153,7 @@ def can_share(from_username: str, resource_id: str, to_username: str, project_id
         return False
 
 
-def end_project(project_id: str):
-    #TODO
-    # network = get_network(project_id)
-    # # Remove the network from the set of networks
-    # remove_network(network)
-    # # Remove the project to each user's project list
-    # remove_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
-    # # Delete the project
-    # del network
-
-    project_file_path = "/etc/project"
-
-    # Flag to indicate if the project ID was found
-    project_found = False
-
-    try:
-        # Read all lines from the project file
-        with open(project_file_path, "r") as file:
-            lines = file.readlines()
-
-        # Open the project file in write mode to update it
-        with open(project_file_path, "w") as file:
-            # Check each line in the file
-            for line in lines:
-                # Check if the line starts with the project ID
-                if line.startswith(f"{project_id}:"):
-                    # Project ID found, set the flag
-                    project_found = True
-                else:
-                    # Write the line back to the file (excluding the project to be ended)
-                    file.write(line)
-
-        # Check if the project ID was found
-        if project_found:
-            print(f"Project '{project_id}' ended successfully.")
-        else:
-            print(f"Error: Project ID '{project_id}' not found.")
-
-    except FileNotFoundError:
-        print("Error: Project file not found.")
-    except Exception as e:
-        print(f"Error: {e}")
-
-
-def share_privilege(project_id: str, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str]):
+def share(project_id: str, from_username: str, resource_id_to_share: str, to_usernames: set[str]):
     # Define the base directory
     base_dir = "/etc/project"
 
@@ -215,14 +171,20 @@ def share_privilege(project_id: str, from_user_id: str, resource_id_to_share: st
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
-        already_shared_context, correct_users = (
-            network.share_resource(from_user_id, resource_id_to_share, to_user_ids))
+        from_user_id = str(pwd.getpwnam(from_username).pw_uid)
+        to_user_ids = set(str(pwd.getpwnam(to_username).pw_uid) for to_username in to_usernames)
+        resource_path = os.path.abspath(resource_id_to_share)
 
-        if already_shared_context is not None:
+        already_shared_users, correct_users = (
+            network.share_resource(from_user_id, resource_path, to_user_ids))
+
+        if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
-            already_shared_context = project_id + already_shared_context
-            subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_id_to_share])
-            print(f"Group '{already_shared_context}' removed rwx access to file '{resource_id_to_share}'.")
+            already_shared_context = project_id + ''.join(sorted(already_shared_users))
+            subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+
+            already_shared_unames = set(pwd.getpwuid(already_shared_uid)[0] for already_shared_uid in already_shared_users)
+            print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
 
         # Now assign to the correct context
         correct_context = project_id + ''.join(sorted(correct_users))
@@ -234,18 +196,16 @@ def share_privilege(project_id: str, from_user_id: str, resource_id_to_share: st
             # Add the new group if it doesn't exist
         if not group_exists:
             subprocess.run(["sudo", "groupadd", correct_context])
-            print(f"Group '{correct_context}' added.")
-        else:
-            print(f"Group '{correct_context}' already exists.")
 
         # Assign users to the group
         for user in correct_users:
             subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
-            print(f"User '{user}' assigned to group '{correct_context}'.")
+            # print(f"User '{user}' assigned to group '{correct_context}'.")
 
         # Assign rwx access to the group in the ACL of the file
         subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
-        print(f"Group '{correct_context}' granted rwx access to file '{resource_id_to_share}'.")
+        correct_unames = set(pwd.getpwuid(correct_user)[0] for correct_user in correct_users)
+        print(f"Group '{correct_unames}' granted rwx access to file '{resource_path}'.")
 
         # Dump the network to the project file
         dump_network_to_file(project_file, network)
@@ -348,3 +308,47 @@ def can_access(requester_id: str, resource_id: str) -> bool:
             print("False!")
 
     return False
+
+
+def end_project(project_id: str):
+    #TODO
+    # network = get_network(project_id)
+    # # Remove the network from the set of networks
+    # remove_network(network)
+    # # Remove the project to each user's project list
+    # remove_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
+    # # Delete the project
+    # del network
+
+    project_file_path = "/etc/project"
+
+    # Flag to indicate if the project ID was found
+    project_found = False
+
+    try:
+        # Read all lines from the project file
+        with open(project_file_path, "r") as file:
+            lines = file.readlines()
+
+        # Open the project file in write mode to update it
+        with open(project_file_path, "w") as file:
+            # Check each line in the file
+            for line in lines:
+                # Check if the line starts with the project ID
+                if line.startswith(f"{project_id}:"):
+                    # Project ID found, set the flag
+                    project_found = True
+                else:
+                    # Write the line back to the file (excluding the project to be ended)
+                    file.write(line)
+
+        # Check if the project ID was found
+        if project_found:
+            print(f"Project '{project_id}' ended successfully.")
+        else:
+            print(f"Error: Project ID '{project_id}' not found.")
+
+    except FileNotFoundError:
+        print("Error: Project file not found.")
+    except Exception as e:
+        print(f"Error: {e}")

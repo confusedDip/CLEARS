@@ -1,12 +1,11 @@
 import os
 
-from utilities.collab import can_access, create_project, add_collaborator, can_share, share_privilege, unshare_privilege
+from utilities.collab import can_access, create_project, add_collaborator, can_share, share, unshare_privilege
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource
 
 
 def main():
-
     """
     Here I will update the progress:
 
@@ -16,16 +15,19 @@ def main():
         (4) share():
     """
 
-    #create_project(project_id="P2")
+    # create_project(project_id="P2")
 
-   # add_collaborator(project_id="P2", users={"pwn_dp", "bailey", "cathy"})
+    # add_collaborator(project_id="P2", users={"pwn_dp", "bailey", "cathy"})
 
-    can_share(from_username="pwn_dp", resource_id="data.json", to_username="bailey", project_id="P2")
-    can_share(from_username="pwn_dp", resource_id="data2.json", to_username="cathy", project_id="P2")
-    can_share(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
-    can_share(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
+    # can_share(from_username="pwn_dp", resource_id="data.json", to_username="bailey", project_id="P2")
+    # can_share(from_username="pwn_dp", resource_id="data2.json", to_username="cathy", project_id="P2")
+    # can_share(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
+    # can_share(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
 
+    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"bailey, cathy"})
+    add_collaborator(project_id="P2", users={"sefcom"})
 
+    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"sefcom"})
 
     # t = 2: Alex invites collaborator Bailey and Cathy
     # invite_collaborator(user_id=creator, project_id="P1", users={"Bailey"})

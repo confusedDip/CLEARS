@@ -218,56 +218,28 @@ class Network:
 
     def share_resource(self, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str]) -> (str, set[str]):
 
-        # Allow only the owner to share
-        resource_to_share = get_resource(resource_id=resource_id_to_share)
-
-        # if from_user_id != resource_to_share.get_owner():
-        #     print(f"Error: Only owner of a resource can share it!")
-        #     return
-
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
-
-        # Start with the root context and do a Breadth-First-Search (BFS)
-        root_context = self.__contexts[self.__root_context]
-        queue = deque([root_context])
-        visited = {}
 
         # The purpose is to find whether the resource is already shared within some context
         already_shared_context = None
 
-        # The BFS Loop
-        while queue:
-            current_context = queue.popleft()
-
-            resources = current_context.get_resources()
+        for context_id, context in self.__contexts.items():
+            resources = context.get_resources()
 
             # If resource is already shared within the current context
             # Keep a note of the context and remove the resource to elevate later
             # No further search is needed because one resource can be shared at most one context
             if resource_id_to_share in resources:
-
-                already_shared_context = current_context
-                current_context.remove_resource(resource_id_to_share)
+                already_shared_context = context
+                context.remove_resource(resource_id_to_share)
                 break
-
-            # If resource is not shared within the current context
-            # Continue the search
-            else:
-
-                for child_context_id in current_context.get_children():
-
-                    child_context = self.__contexts[child_context_id]
-                    # Prune the subtrees where the sharer is not present
-                    if from_user_id in child_context.get_users():
-                        if child_context not in visited.keys():
-                            queue.append(child_context)
-                            visited[child_context] = True
 
         # If the resource is already not shared
         # The context to share is the one with all involved users
         if already_shared_context is None:
-            correct_context = ''.join(sorted(involved_users))
+            correct_context = Context(user_ids=involved_users)
+            self.add_context(correct_context)
             correct_users = involved_users
 
         # If the resource is already shared
@@ -279,12 +251,45 @@ class Network:
             correct_context = ''.join(sorted(correct_users))
 
         self.__contexts[correct_context].add_resource(resource_id_to_share)
-        # print(f"New Context: {''.join(sorted(involved_users))}, Existing Context: {already_shared_context.get_id()}")
-        # print(f"Correct Context: {correct_context}")
 
         if already_shared_context is None:
             return None, correct_users
-        return already_shared_context.get_id(), correct_users
+        return already_shared_context.get_users(), correct_users
+
+        # # Start with the root context and do a Breadth-First-Search (BFS)
+        # root_context = self.__contexts[self.__root_context]
+        # queue = deque([root_context])
+        # visited = {}
+        #
+        # # The BFS Loop
+        # while queue:
+        #     current_context = queue.popleft()
+        #
+        #     resources = current_context.get_resources()
+        #
+        #     # If resource is already shared within the current context
+        #     # Keep a note of the context and remove the resource to elevate later
+        #     # No further search is needed because one resource can be shared at most one context
+        #     if resource_id_to_share in resources:
+        #
+        #         already_shared_context = current_context
+        #         current_context.remove_resource(resource_id_to_share)
+        #         break
+        #
+        #     # If resource is not shared within the current context
+        #     # Continue the search
+        #     else:
+        #
+        #         for child_context_id in current_context.get_children():
+        #
+        #             child_context = self.__contexts[child_context_id]
+        #             # Prune the subtrees where the sharer is not present
+        #             if from_user_id in child_context.get_users():
+        #                 if child_context not in visited.keys():
+        #                     queue.append(child_context)
+        #                     visited[child_context] = True
+
+
         # self.visualize_network()
 
     def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str],
