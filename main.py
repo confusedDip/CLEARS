@@ -1,16 +1,31 @@
 import os
 
-from utilities.collab import can_access, initiate_project, invite_collaborator, share_privilege, unshare_privilege
+from utilities.collab import can_access, create_project, add_collaborator, can_share, share_privilege, unshare_privilege
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource
 
 
 def main():
-    creator = os.getlogin()
 
-    # t = 1: Alex starts a project P1
-    creator = "Alex"
-    # initiate_project(user_id=creator, project_id="P1")
+    """
+    Here I will update the progress:
+
+        (1) create_project(): Takes a project id and registers the project in the system
+        (2) add_collaborator(): Adds set of collaborators to an existing project
+        (3) can_share(): Takes from and to user ids and resource local path, and the project id to authorize the sharing
+        (4) share():
+    """
+
+    create_project(project_id="P2")
+
+    add_collaborator(project_id="P2", users={"pwn_dp", "Bailey", "Cathy"})
+
+    can_share(from_username="pwn_dp", resource_id="data.json", to_username="Bailey", project_id="P2")
+    can_share(from_username="pwn_dp", resource_id="data2.json", to_username="Cathy", project_id="P2")
+    can_share(from_username="Bailey", resource_id="data2.json", to_username="Cathy", project_id="P2")
+    can_share(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
+
+
 
     # t = 2: Alex invites collaborator Bailey and Cathy
     # invite_collaborator(user_id=creator, project_id="P1", users={"Bailey"})

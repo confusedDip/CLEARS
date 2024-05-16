@@ -111,7 +111,7 @@ class Network:
         # Update the set of involved users
         self.__all_user_ids.add(user)
         # Expand the network
-        self.expand_network()
+        # self.expand_network()
         # Add the project to new user's project list
         # add_project(user_ids=self.__all_user_ids, project_id=self.__project_id, user_id=user)
 

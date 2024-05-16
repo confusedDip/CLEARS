@@ -3,7 +3,7 @@ import json
 from classes.collab import Network, Networks, from_dict
 from utilities.user import get_user, add_project, remove_project
 from utilities.resource import get_resource
-import os
+import os, pwd
 import subprocess
 
 
@@ -42,9 +42,15 @@ def dump_network_to_file(project_file: str, network: Network):
         print(f"Failed to create project '{network.get_project_id()}': {e}")
 
 
-def initiate_project(user_id: str, project_id: str):
+def create_project(project_id: str):
+    """
+    It is an administrative action to initiate a project
+    This initializes the corresponding project file within /etc/project directory
+    Also, initializes an empty collaboration network object
+    :param project_id: An unique identifier for the project
+    """
     # Model Tasks:
-    network = Network(user_ids={user_id}, project_id=project_id)
+    network = Network(user_ids=set(), project_id=project_id)
 
     # OS Tasks:
 
@@ -57,11 +63,13 @@ def initiate_project(user_id: str, project_id: str):
     # Dump the network to the project file
     dump_network_to_file(project_file, network)
 
-    # Add the project to each user's project list
-    # add_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
 
-
-def invite_collaborator(user_id: str, project_id: str, users: set[str]):
+def add_collaborator(project_id: str, users: set[str]):
+    """
+    It is an administrative action to add collaborators to a project
+    :param project_id: The unique identifier to refer to the project
+    :param users: List of user ids that are to be added to the project
+    """
     # Define the base directory
     base_dir = "/etc/project"
 
@@ -72,7 +80,6 @@ def invite_collaborator(user_id: str, project_id: str, users: set[str]):
         # Read all lines from the project file
         with open(project_file, "r") as file:
             data = json.load(file)
-            # print(data)
             network = Network(
                 user_ids=set(data['all_user_ids']),
                 project_id=data['project_id'],
@@ -80,8 +87,9 @@ def invite_collaborator(user_id: str, project_id: str, users: set[str]):
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
-        for new_user_id in users:
-            network.add_new_user(user=new_user_id)
+        for new_username in users:
+            new_user_id = pwd.getpwnam(new_username)[0]
+            network.add_new_user(user=str(new_user_id))
 
         dump_network_to_file(project_file, network)
 
@@ -89,6 +97,59 @@ def invite_collaborator(user_id: str, project_id: str, users: set[str]):
         print("Error: Project not found.")
     except Exception as e:
         print(f"Error: {e}")
+
+
+def can_share(from_username: str, resource_id: str, to_username: str, project_id: str) -> bool:
+    """
+    This is the sharing authorization relation that supports admin defined policies
+    :param from_username: which user is requesting to share?
+    :param resource_id: what resource (privilege) is concerned?
+    :param to_username: to whom is it being shared?
+    :param project_id: under which project context the sharing is taking place?
+    :return: Allow (True) or Deny (False)
+    """
+
+    from_user_id = pwd.getpwnam(from_username)[0]
+    to_user_id = pwd.getpwnam(to_username)[0]
+
+    # Step 1: Obtain the owner information
+    resource_path = os.path.abspath(resource_id)
+    resource_metadata = os.stat(resource_path)
+    owner_uid = resource_metadata.st_uid
+    owner_name = pwd.getpwuid(owner_uid)[0]
+
+    # Step 2: Obtain the user list of the project
+    # Define the base directory
+    base_dir = "/etc/project"
+
+    # Create the full path for the project
+    project_file = os.path.join(base_dir, project_id) + ".json"
+
+    try:
+        # Read all lines from the project file
+        with open(project_file, "r") as file:
+            data = json.load(file)
+
+            collaborators = data['all_user_ids']
+
+            # Check for the two constraints
+            if owner_uid != from_user_id:
+                print(f"Sharing Error: The requesting user {owner_name} is not the owner of the resource")
+                return False
+            else:
+                if (str(from_user_id) not in collaborators) or (str(to_user_id) not in collaborators):
+                    print(f"Sharing Error: {from_username} and {to_username} are not collaborators within {project_id}")
+                    return False
+                else:
+                    print(f"Sharing {resource_path} Allowed: From {from_username} and {to_username}")
+                    return True
+
+    except FileNotFoundError:
+        print(f"Sharing Error: Project {project_id} not found.")
+        return False
+    except Exception as e:
+        print(f"Sharing Error: {e}")
+        return False
 
 
 def end_project(project_id: str):
