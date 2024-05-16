@@ -175,7 +175,7 @@ def share(project_id: str, from_username: str, resource_id_to_share: str, to_use
         to_user_ids = set(str(pwd.getpwnam(to_username).pw_uid) for to_username in to_usernames)
         resource_path = os.path.abspath(resource_id_to_share)
 
-        already_shared_users, correct_users, new_network = (
+        already_shared_users, correct_users = (
             network.share_resource(from_user_id, resource_path, to_user_ids))
 
         if already_shared_users is not None:
@@ -210,7 +210,7 @@ def share(project_id: str, from_username: str, resource_id_to_share: str, to_use
         print(f"Group '{correct_unames}' granted rwx access to file '{resource_path}'.")
 
         # Dump the network to the project file
-        dump_network_to_file(project_file, new_network)
+        dump_network_to_file(project_file, network)
 
     except FileNotFoundError:
         print("Error: Project not found.")
