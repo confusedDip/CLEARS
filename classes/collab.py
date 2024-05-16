@@ -226,6 +226,7 @@ class Network:
 
         for context_id, context in self.__contexts.items():
             resources = context.get_resources()
+            print(f"{context_id}: {resources}")
 
             # If resource is already shared within the current context
             # Keep a note of the context and remove the resource to elevate later
