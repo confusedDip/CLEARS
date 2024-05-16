@@ -198,8 +198,9 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
-            subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            # subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
             # subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            subprocess.run(["wrapper_setfacl.sh", "x", resource_path, already_shared_context])
 
             already_shared_unames = set(
                 pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
@@ -214,19 +215,24 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
 
             # Add the new group if it doesn't exist
         if not group_exists:
-            subprocess.run(["sudo", "groupadd", correct_context])
+            # subprocess.run(["sudo", "groupadd", correct_context])
             # subprocess.run(["groupadd", correct_context])
+            subprocess.run(["wrapper_groupadd.sh", correct_context])
 
         # Assign users to the group
         for user_id in correct_users:
             user = pwd.getpwuid(int(user_id))[0]
-            subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
+            # subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
             # subprocess.run(["usermod", "-aG", correct_context, user])
+            subprocess.run(["wrapper_usermod.sh", correct_context, user])
+
             # print(f"User '{user}' assigned to group '{correct_context}'.")
 
         # Assign rwx access to the group in the ACL of the file
-        subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
+        # subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
         # subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
+        subprocess.run(["wrapper_setfacl.sh", "m", resource_path, correct_context])
+
         correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
         print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
 
