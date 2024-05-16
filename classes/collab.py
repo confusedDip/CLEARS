@@ -301,7 +301,6 @@ class Network:
         #                     queue.append(child_context)
         #                     visited[child_context] = True
 
-
         # self.visualize_network()
 
     def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str],
@@ -310,29 +309,14 @@ class Network:
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
 
-        # Start with the root context and do a Breadth-First-Search (BFS)
-
-        if root_context is None:
-            root_context = self.__contexts[self.__root_context]
-        queue = deque([root_context])
-        visited = {}
-
         correct_context_id = None  # This is the context where the privileges should be re-shared after un-sharing
-        correct_users = {}
-        already_shared_context_id = None
+        correct_users = set()
+        already_shared_context = None
 
-        # The purpose is to find which context the resources are shared
-        # The BFS Loop
-        while queue:
-            current_context = queue.popleft()
+        for context_id, context in self.get_contexts():
 
-            if current_context.get_id() == correct_context_id:
-                current_context.add_resource(resource_id_to_unshare)
-                print(f"Resource {resource_id_to_unshare} is re-shared in {current_context.get_id()}")
-                return already_shared_context_id, correct_users
-
-            users = current_context.get_users()
-            resources = current_context.get_resources()
+            users = context.get_users()
+            resources = context.get_resources()
 
             # Only investigate a context if it includes all involved users
             if involved_users.issubset(users):
@@ -341,25 +325,73 @@ class Network:
                 # Remove the resource from the current context to the child without
                 if resource_id_to_unshare in resources:
 
-                    current_context.remove_resource(resource_id_to_unshare)
-                    print(f"Resource {resource_id_to_unshare} is unshared from {current_context.get_id()}")
-                    already_shared_context_id = current_context.get_id()
+                    context.remove_resource(resource_id_to_unshare)
+                    # print(f"Resource {resource_id_to_unshare} is unshared from {context.get_users()}")
+                    already_shared_context = context
 
                     additional_users = users.difference(involved_users)
-                    print(f"Additional Users: {additional_users}")
+                    # print(f"Additional Users: {additional_users}")
                     # If the context to unshare is a leaf node, then nothing else to do
                     if len(additional_users) == 0:
                         # self.visualize_network()
-                        return already_shared_context_id, correct_users
+                        return already_shared_context.get_users(), None
 
                     correct_users = additional_users.union({from_user_id})
-                    correct_context_id = ''.join(sorted(correct_users))
 
-            for child_context_id in current_context.get_children():
-                if child_context_id not in visited.keys():
-                    child_context = self.__contexts[child_context_id]
-                    queue.append(child_context)
-                    visited[child_context_id] = True
+        correct_context_id = ''.join(sorted(correct_users))
+
+        if correct_context_id in self.__contexts.keys():
+            correct_context = self.__contexts[correct_context_id]
+        else:
+            correct_context = Context(correct_users)
+        correct_context.add_resource(resource_id_to_unshare)
+        return already_shared_context.get_users(), correct_users
+
+        # Start with the root context and do a Breadth-First-Search (BFS)
+        # if root_context is None:
+        #     root_context = self.__contexts[self.__root_context]
+        # queue = deque([root_context])
+        # visited = {}
+
+        # The purpose is to find which context the resources are shared
+        # The BFS Loop
+        # while queue:
+        #     current_context = queue.popleft()
+        #
+        #     if current_context.get_id() == correct_context_id:
+        #         current_context.add_resource(resource_id_to_unshare)
+        #         print(f"Resource {resource_id_to_unshare} is re-shared in {current_context.get_id()}")
+        #         return already_shared_context_id, correct_users
+        #
+        #     users = current_context.get_users()
+        #     resources = current_context.get_resources()
+        #
+        #     # Only investigate a context if it includes all involved users
+        #     if involved_users.issubset(users):
+        #
+        #         # If the context has the shared resources
+        #         # Remove the resource from the current context to the child without
+        #         if resource_id_to_unshare in resources:
+        #
+        #             current_context.remove_resource(resource_id_to_unshare)
+        #             print(f"Resource {resource_id_to_unshare} is unshared from {current_context.get_id()}")
+        #             already_shared_context_id = current_context.get_id()
+        #
+        #             additional_users = users.difference(involved_users)
+        #             print(f"Additional Users: {additional_users}")
+        #             # If the context to unshare is a leaf node, then nothing else to do
+        #             if len(additional_users) == 0:
+        #                 # self.visualize_network()
+        #                 return already_shared_context_id, correct_users
+        #
+        #             correct_users = additional_users.union({from_user_id})
+        #             correct_context_id = ''.join(sorted(correct_users))
+        #
+        #     for child_context_id in current_context.get_children():
+        #         if child_context_id not in visited.keys():
+        #             child_context = self.__contexts[child_context_id]
+        #             queue.append(child_context)
+        #             visited[child_context_id] = True
 
     def remove_user(self, user_id: str):
 

@@ -165,7 +165,6 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     can_share_flag = True
     for to_username in to_usernames.copy():
         if not can_share(from_username, resource_id_to_share, to_username, project_id):
-            to_usernames.remove(to_username)
             can_share_flag = False
 
     if not can_share_flag:
@@ -225,7 +224,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         # Assign rwx access to the group in the ACL of the file
         subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
         correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
-        print(f"Group '{correct_unames}' granted rwx access to file '{resource_path}'.")
+        print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
 
         # Dump the network to the project file
         dump_network_to_file(project_file, network)
@@ -305,7 +304,17 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
         return False
 
 
-def unshare_privilege(project_id: str, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str]):
+def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[str], project_id: str):
+
+    can_unshare_flag = True
+    for to_username in to_usernames.copy():
+        if not can_unshare(from_username, resource_id_to_unshare, to_username, project_id):
+            can_unshare_flag = False
+
+    if not can_unshare_flag:
+        print("One of more (from_user, resource, to_user) un-sharing query is not permitted")
+        return
+
     # Define the base directory
     base_dir = "/etc/project"
 
@@ -323,14 +332,20 @@ def unshare_privilege(project_id: str, from_user_id: str, resource_id_to_unshare
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
-        already_shared_context, correct_users = (
-            network.unshare_resource(from_user_id, resource_id_to_unshare, to_user_ids))
+        from_user_id = str(pwd.getpwnam(from_username).pw_uid)
+        to_user_ids = set(str(pwd.getpwnam(to_username).pw_uid) for to_username in to_usernames)
+        resource_path = os.path.abspath(resource_id_to_unshare)
 
-        if already_shared_context is not None:
+        already_shared_users, correct_users = (
+            network.unshare_resource(from_user_id, resource_path, to_user_ids))
+
+        if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
-            already_shared_context = project_id + already_shared_context
-            subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_id_to_unshare])
-            print(f"Group '{already_shared_context}' removed rwx access to file '{resource_id_to_unshare}'.")
+            already_shared_context = project_id + ''.join(sorted(already_shared_users))
+            subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            already_shared_unames = set(
+                pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
+            print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
 
         # Now assign to the correct context
         correct_context = project_id + ''.join(sorted(correct_users))
@@ -339,12 +354,9 @@ def unshare_privilege(project_id: str, from_user_id: str, resource_id_to_unshare
             existing_groups = file.read().splitlines()
             group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
 
-            # Add the new group if it doesn't exist
+        # Add the new group if it doesn't exist
         if not group_exists:
             subprocess.run(["sudo", "groupadd", correct_context])
-            print(f"Group '{correct_context}' added.")
-        else:
-            print(f"Group '{correct_context}' already exists.")
 
         # Assign users to the group
         for user in correct_users:
@@ -352,14 +364,16 @@ def unshare_privilege(project_id: str, from_user_id: str, resource_id_to_unshare
             print(f"User '{user}' assigned to group '{correct_context}'.")
 
         # Assign rwx access to the group in the ACL of the file
-        subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_unshare])
-        print(f"Group '{correct_context}' granted rwx access to file '{resource_id_to_unshare}'.")
+        subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+        correct_unames = set(
+            pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
+        print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
 
         # Dump the network to the project file
         dump_network_to_file(project_file, network)
 
     except FileNotFoundError:
-        print("Error: Project not found.")
+        print(f"Error: Project {project_id} not found.")
 
     except Exception as e:
         print(f"Error: {e}")
