@@ -6,6 +6,16 @@ import sys
 from utilities.collab import can_access, create_project, add_collaborator, can_share, can_unshare, share, unshare
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource
+import subprocess
+
+
+def is_in_sudoers():
+    try:
+        # Attempt to execute a command that requires sudo
+        subprocess.check_call(['sudo', '-n', 'ls'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
 
 def main():
@@ -30,7 +40,53 @@ def main():
     """
 
     args = sys.argv
-    print(args)
+    user = os.getlogin()
+
+    if len(sys.argv) < 2:
+        print("Invalid Input: Please refer `./main.py help` for documentation")
+        return
+
+    if len(sys.argv) == 2 and sys.argv[1].lower() != "help":
+        print("Invalid Input: Please refer `./main.py help` for documentation")
+        return
+
+    if len(sys.argv) == 2 and sys.argv[1].lower() == "help":
+        # print_help()
+        return
+
+    action = sys.argv[1].lower()
+    params = sys.argv[2:]
+
+    accepted_actions = ["start", "add", "remove", "share", "unshare", "end"]
+
+    if action not in accepted_actions:
+        print("Invalid Input: Please refer `./main.py help` for documentation")
+        return
+
+    if action == "start":
+        if len(params) != 1:
+            print("Invalid Input: Please refer `./main.py help` for documentation")
+            return
+
+        if is_in_sudoers():
+            create_project(project_id=params[0])
+        else:
+            print("This action can only be performed with Administrative Privileges.")
+
+    elif action == "add":
+        pass
+
+    if action == "remove":
+        pass
+
+    elif action == "share":
+        pass
+
+    if action == "unshare":
+        pass
+
+    elif action == "end":
+        pass
 
     # create_project(project_id="P2")
     #
@@ -54,7 +110,6 @@ def main():
     # share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data2.json", to_usernames={"bailey", "sefcom"})
     # unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"cathy"})
     # unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"bailey"})
-
 
     # t = 2: Alex invites collaborator Bailey and Cathy
     # invite_collaborator(user_id=creator, project_id="P1", users={"Bailey"})
