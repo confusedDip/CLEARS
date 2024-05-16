@@ -344,6 +344,7 @@ class Network:
             correct_context = self.__contexts[correct_context_id]
         else:
             correct_context = Context(correct_users)
+            self.add_context(correct_context)
         correct_context.add_resource(resource_id_to_unshare)
         return already_shared_context.get_users(), correct_users
 

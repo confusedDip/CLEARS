@@ -347,27 +347,28 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
                 pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
             print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
 
-        # Now assign to the correct context
-        correct_context = project_id + ''.join(sorted(correct_users))
+        if correct_users is not None:
+            # Now assign to the correct context
+            correct_context = project_id + ''.join(sorted(correct_users))
 
-        with open("/etc/group", "r") as file:
-            existing_groups = file.read().splitlines()
-            group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+            with open("/etc/group", "r") as file:
+                existing_groups = file.read().splitlines()
+                group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
 
-        # Add the new group if it doesn't exist
-        if not group_exists:
-            subprocess.run(["sudo", "groupadd", correct_context])
+            # Add the new group if it doesn't exist
+            if not group_exists:
+                subprocess.run(["sudo", "groupadd", correct_context])
 
-        # Assign users to the group
-        for user_id in correct_users:
-            user = pwd.getpwuid(int(user_id))[0]
-            subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
+            # Assign users to the group
+            for user_id in correct_users:
+                user = pwd.getpwuid(int(user_id))[0]
+                subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
 
-        # Assign rwx access to the group in the ACL of the file
-        subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
-        correct_unames = set(
-            pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
-        print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
+            # Assign rwx access to the group in the ACL of the file
+            subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+            correct_unames = set(
+                pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
+            print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
 
         # Dump the network to the project file
         dump_network_to_file(project_file, network)
