@@ -250,7 +250,7 @@ class Network:
             correct_users = involved_users.union(already_shared_users)
             correct_context = ''.join(sorted(correct_users))
 
-        self.__contexts[correct_context].add_resource(resource_id_to_share)
+        self.__contexts[correct_context.get_id()].add_resource(resource_id_to_share)
 
         if already_shared_context is None:
             return None, correct_users

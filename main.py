@@ -24,7 +24,7 @@ def main():
     # can_share(from_username="bailey", resource_id="data2.json", to_username="cathy", project_id="P2")
     # can_share(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
 
-    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"bailey, cathy"})
+    share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"bailey", "cathy"})
     add_collaborator(project_id="P2", users={"sefcom"})
 
     share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data.json", to_usernames={"sefcom"})

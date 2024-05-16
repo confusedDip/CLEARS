@@ -157,6 +157,8 @@ def share(project_id: str, from_username: str, resource_id_to_share: str, to_use
     # Define the base directory
     base_dir = "/etc/project"
 
+    print("I am here at share()")
+
     # Create the full path for the project
     project_file = os.path.join(base_dir, project_id) + ".json"
 
@@ -198,7 +200,8 @@ def share(project_id: str, from_username: str, resource_id_to_share: str, to_use
             subprocess.run(["sudo", "groupadd", correct_context])
 
         # Assign users to the group
-        for user in correct_users:
+        for user_id in correct_users:
+            user = pwd.getpwuid(user_id)[0]
             subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
             # print(f"User '{user}' assigned to group '{correct_context}'.")
 
