@@ -73,19 +73,48 @@ def main():
         if is_in_sudoers():
             create_project(project_id=params[0])
         else:
-            print("This action can only be performed with Administrative Privileges.")
+            print("initiate project: This action can only be performed with Administrative Privileges.")
 
     elif action == "add":
-        pass
+        if len(params) < 2:
+            print("Invalid Input: Please refer `./main.py help` for documentation")
+            return
+
+        if is_in_sudoers():
+            project_id = params[0]
+            collaborators = set(params[1:])
+            add_collaborator(project_id, collaborators)
+        else:
+            print("initiate project: This action can only be performed with Administrative Privileges.")
 
     if action == "remove":
         pass
 
     elif action == "share":
-        pass
+        if len(params) < 3:
+            print("Invalid Input: Please refer `./main.py help` for documentation")
+            return
+
+        from_user = os.getlogin()
+        resource_to_share = params[0]
+        to_users = set(params[1:-1])
+        project_id = params[-1]
+
+        share(from_username=from_user, resource_id_to_share=resource_to_share, to_usernames=to_users,
+              project_id=project_id)
 
     if action == "unshare":
-        pass
+        if len(params) < 3:
+            print("Invalid Input: Please refer `./main.py help` for documentation")
+            return
+
+        from_user = os.getlogin()
+        resource_to_unshare = params[0]
+        to_users = set(params[1:-1])
+        project_id = params[-1]
+
+        unshare(from_username=from_user, resource_id_to_unshare=resource_to_unshare, to_usernames=to_users,
+                project_id=project_id)
 
     elif action == "end":
         pass
