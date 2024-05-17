@@ -172,9 +172,6 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     if not can_share_flag:
         print("One of more (from_user, resource, to_user) sharing query is not permitted")
         return
-    
-    print(os.getuid())
-    print(os.geteuid())
 
     # Define the base directory
     base_dir = "/etc/project"
@@ -182,16 +179,11 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     # Create the full path for the project
     project_file = os.path.join(base_dir, project_id) + ".json"
 
-    
     # Get the directory path of the currently executing Python script
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Construct the full path to the shell script
-    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd.sh")
-
-    # Check if the wrapper script exists
-    if not os.path.exists(wrapper_groupadd_path):
-        raise FileNotFoundError(f"Wrapper script '{wrapper_groupadd_path}' not found.")
+    # wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd.sh")
 
     try:
         # Read all lines from the project file
@@ -210,15 +202,15 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
 
         already_shared_users, correct_users = (
             network.share_resource(from_user_id, resource_path, to_user_ids))
-        
+
         # os.setuid(0)
 
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
             # subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
-            # subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
-            subprocess.run(["wrapper_setfacl.sh", "x", resource_path, already_shared_context])
+            subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            # subprocess.run(["wrapper_setfacl.sh", "x", resource_path, already_shared_context])
 
             already_shared_unames = set(
                 pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
@@ -233,23 +225,23 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
 
             # Add the new group if it doesn't exist
         if not group_exists:
-            # subprocess.run(["sudo", "groupadd", correct_context])
+            subprocess.run(["sudo", "groupadd", correct_context])
             # subprocess.run(["groupadd", correct_context])
-            subprocess.run([wrapper_groupadd_path, correct_context])
+            # subprocess.run([wrapper_groupadd_path, correct_context])
 
         # Assign users to the group
         for user_id in correct_users:
             user = pwd.getpwuid(int(user_id))[0]
-            # subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
+            subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
             # subprocess.run(["usermod", "-aG", correct_context, user])
-            subprocess.run(["wrapper_usermod.sh", correct_context, user])
+            # subprocess.run(["wrapper_usermod.sh", correct_context, user])
 
             # print(f"User '{user}' assigned to group '{correct_context}'.")
 
         # Assign rwx access to the group in the ACL of the file
         # subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
-        # subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
-        subprocess.run(["wrapper_setfacl.sh", "m", resource_path, correct_context])
+        subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
+        # subprocess.run(["wrapper_setfacl.sh", "m", resource_path, correct_context])
 
         correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
         print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
@@ -257,8 +249,8 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         # Dump the network to the project file
         dump_network_to_file(project_file, network)
 
-    except FileNotFoundError:
-        print(f"Error: Project {project_id} not found. Souradip! {e}")
+    except FileNotFoundError as e:
+        print(f"Error: Project {project_id} not found. {e}")
 
     except Exception as e:
         print(f"Error: {e}")
@@ -309,7 +301,8 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
                 return False
             else:
                 if (str(from_user_id) not in collaborators) or (str(to_user_id) not in collaborators):
-                    print(f"Un-Sharing Error: {from_username} and {to_username} are not collaborators within {project_id}")
+                    print(
+                        f"Un-Sharing Error: {from_username} and {to_username} are not collaborators within {project_id}")
                     return False
                 else:
                     # Check if the privilege has been previously shared or not!
