@@ -290,7 +290,7 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
 
             # Check for the two constraints
             if owner_uid != from_user_id:
-                print(f"Un-Sharing Error: The requesting user {owner_name} is not the owner of the resource")
+                print(f"Un-Sharing Error: The requesting user {from_username} is not the owner of the resource")
                 return False
             else:
                 if (str(from_user_id) not in collaborators) or (str(to_user_id) not in collaborators):
@@ -343,6 +343,13 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
     # Create the full path for the project
     project_file = os.path.join(base_dir, project_id) + ".json"
 
+    # Get the directory path of the currently executing Python script
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # Construct the full path to the c wrappers
+    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
+    wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
+
     try:
         # Read all lines from the project file
         with open(project_file, "r") as file:
@@ -364,7 +371,9 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
-            subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            subprocess.run(["sync"])
+
             already_shared_unames = set(
                 pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
             print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
@@ -379,15 +388,15 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
 
             # Add the new group if it doesn't exist
             if not group_exists:
-                subprocess.run(["sudo", "groupadd", correct_context])
+                subprocess.run([wrapper_groupadd_path, correct_context])
 
             # Assign users to the group
             for user_id in correct_users:
                 user = pwd.getpwuid(int(user_id))[0]
-                subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
+                subprocess.run([wrapper_usermod_path, correct_context, user])
 
             # Assign rwx access to the group in the ACL of the file
-            subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+            subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
             correct_unames = set(
                 pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
             print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
