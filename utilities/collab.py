@@ -138,7 +138,7 @@ def can_share(from_username: str, resource_id: str, to_username: str, project_id
 
             # Check for the two constraints
             if owner_uid != from_user_id:
-                print(f"Sharing Error: The requesting user {owner_name} is not the owner of the resource")
+                print(f"Sharing Error: The requesting user {from_username} is not the owner of the resource")
                 return False
             else:
                 if (str(from_user_id) not in collaborators) or (str(to_user_id) not in collaborators):
@@ -209,6 +209,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
             subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            subprocess.run(["sync"])
 
             already_shared_unames = set(
                 pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
@@ -228,11 +229,12 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         # Assign users to the group
         for user_id in correct_users:
             user = pwd.getpwuid(int(user_id))[0]
-            print(correct_context, user)
+            # print(correct_context, user)
             subprocess.run([wrapper_usermod_path, correct_context, user])
 
         # Assign rwx access to the group in the ACL of the file
         subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
+        subprocess.run(["sync"])
 
         correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
         print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
