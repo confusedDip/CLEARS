@@ -240,7 +240,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         dump_network_to_file(project_file, network)
 
     except FileNotFoundError:
-        print("Error: Project not found.")
+        print(f"Error: Project {project_id} not found.")
 
     except Exception as e:
         print(f"Error: {e}")
