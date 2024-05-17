@@ -9,39 +9,40 @@ import os, pwd
 import subprocess
 
 
-def get_acl(file_path):
-    # Execute the getfacl command to retrieve the ACL
-    result = subprocess.run(['getfacl', file_path], capture_output=True, text=True)
-
-    # Check if the command executed successfully
-    if result.returncode == 0:
-        return result.stdout
-    else:
-        return f"Error: {result.stderr}"
-
-
-def set_acl(file_path, acl):
-    # Execute the setfacl command to set the ACL
-    result = subprocess.run(['setfacl', '-M', acl, file_path], capture_output=True, text=True)
-
-    # Check if the command executed successfully
-    if result.returncode == 0:
-        return "ACL set successfully"
-    else:
-        return f"Error: {result.stderr}"
-
-
 def dump_network_to_file(project_file: str, network: Network):
-    try:
-        # Create the project directory
-        with open(project_file, "w") as file:
-            json.dump(network.to_dict(), file, indent=4)
-        print(f"Project '{network.get_project_id()}' created/updated successfully.")
+    # try:
+    #     # Create the project directory
+    #     with open(project_file, "w") as file:
+    #         json.dump(network.to_dict(), file, indent=4)
+    #     print(f"Project '{network.get_project_id()}' created/updated successfully.")
+    #
+    # except FileExistsError:
+    #     print(f"Project '{network.get_project_id()}' already exists.")
+    # except OSError as e:
+    #     print(f"Failed to create project '{network.get_project_id()}': {e}")
+    # Serialize the network to a JSON string
 
-    except FileExistsError:
-        print(f"Project '{network.get_project_id()}' already exists.")
-    except OSError as e:
-        print(f"Failed to create project '{network.get_project_id()}': {e}")
+    network_json = json.dumps(network.to_dict(), indent=4)
+
+    # Get the directory path of the currently executing Python script
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # Construct the full path to the C wrapper
+    wrapper_script_path = os.path.join(script_dir, "wrapper_network_dump")
+
+    # Check if the wrapper script exists
+    if not os.path.exists(wrapper_script_path):
+        raise FileNotFoundError(f"Wrapper script '{wrapper_script_path}' not found.")
+
+    try:
+        # Call the C wrapper with the project file and network JSON
+        result = subprocess.run([wrapper_script_path, project_file, network_json],
+                                check=True, text=True, capture_output=True)
+        print(result.stdout)
+
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to create project '{network.get_project_id()}': {e.stderr}")
+
 
 
 def create_project(project_id: str):
@@ -186,7 +187,6 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
     wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
 
-
     try:
         # Read all lines from the project file
         with open(project_file, "r") as file:
@@ -205,14 +205,10 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         already_shared_users, correct_users = (
             network.share_resource(from_user_id, resource_path, to_user_ids))
 
-        # os.setuid(0)
-
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
-            # subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
             subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
-            # subprocess.run(["wrapper_setfacl.sh", "x", resource_path, already_shared_context])
 
             already_shared_unames = set(
                 pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
@@ -225,25 +221,17 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             existing_groups = file.read().splitlines()
             group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
 
-            # Add the new group if it doesn't exist
+        # Add the new group if it doesn't exist
         if not group_exists:
-            # subprocess.run(["sudo", "groupadd", correct_context])
-            # subprocess.run(["groupadd", correct_context])
             subprocess.run([wrapper_groupadd_path, correct_context])
 
         # Assign users to the group
         for user_id in correct_users:
             user = pwd.getpwuid(int(user_id))[0]
-            # subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
-            # subprocess.run(["usermod", "-aG", correct_context, user])
             subprocess.run([wrapper_usermod_path, correct_context, user], check=True)
 
-            # print(f"User '{user}' assigned to group '{correct_context}'.")
-
         # Assign rwx access to the group in the ACL of the file
-        # subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
         subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
-        # subprocess.run(["wrapper_setfacl.sh", "m", resource_path, correct_context])
 
         correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
         print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
