@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import json
 
 from classes.collab import Network, Networks, from_dict
@@ -170,12 +172,26 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     if not can_share_flag:
         print("One of more (from_user, resource, to_user) sharing query is not permitted")
         return
+    
+    print(os.getuid())
+    print(os.geteuid())
 
     # Define the base directory
     base_dir = "/etc/project"
 
     # Create the full path for the project
     project_file = os.path.join(base_dir, project_id) + ".json"
+
+    
+    # Get the directory path of the currently executing Python script
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # Construct the full path to the shell script
+    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd.sh")
+
+    # Check if the wrapper script exists
+    if not os.path.exists(wrapper_groupadd_path):
+        raise FileNotFoundError(f"Wrapper script '{wrapper_groupadd_path}' not found.")
 
     try:
         # Read all lines from the project file
@@ -194,6 +210,8 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
 
         already_shared_users, correct_users = (
             network.share_resource(from_user_id, resource_path, to_user_ids))
+        
+        # os.setuid(0)
 
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
@@ -217,7 +235,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         if not group_exists:
             # subprocess.run(["sudo", "groupadd", correct_context])
             # subprocess.run(["groupadd", correct_context])
-            subprocess.run(["wrapper_groupadd.sh", correct_context])
+            subprocess.run([wrapper_groupadd_path, correct_context])
 
         # Assign users to the group
         for user_id in correct_users:
@@ -240,7 +258,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         dump_network_to_file(project_file, network)
 
     except FileNotFoundError:
-        print(f"Error: Project {project_id} not found.")
+        print(f"Error: Project {project_id} not found. Souradip! {e}")
 
     except Exception as e:
         print(f"Error: {e}")
