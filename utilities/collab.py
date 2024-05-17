@@ -183,7 +183,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Construct the full path to the shell script
-    # wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd.sh")
+    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
 
     try:
         # Read all lines from the project file
@@ -225,9 +225,9 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
 
             # Add the new group if it doesn't exist
         if not group_exists:
-            subprocess.run(["sudo", "groupadd", correct_context])
+            # subprocess.run(["sudo", "groupadd", correct_context])
             # subprocess.run(["groupadd", correct_context])
-            # subprocess.run([wrapper_groupadd_path, correct_context])
+            subprocess.run([wrapper_groupadd_path, correct_context])
 
         # Assign users to the group
         for user_id in correct_users:
