@@ -57,7 +57,6 @@ def main():
         return
 
     action = sys.argv[1].lower()
-    # params = sys.argv[2:]
 
     accepted_actions = ["start", "add", "remove", "share", "unshare", "end"]
 
@@ -66,9 +65,6 @@ def main():
         return
 
     if action == "start":
-        # if len(params) != 1:
-        #     print("Invalid Input: Please refer `./main.py help` for documentation")
-        #     return
 
         if is_in_sudoers():
             project_id = input("Enter the project name: ")
@@ -77,24 +73,18 @@ def main():
             print("initiate project: This action can only be performed with Administrative Privileges.")
 
     elif action == "add":
-        # if len(params) < 2:
-        #     print("Invalid Input: Please refer `./main.py help` for documentation")
-        #     return
 
         if is_in_sudoers():
             project_id = input("Enter the project name: ")
             collaborators = input("Enter the user names to add (space separated): ").split()
             add_collaborator(project_id, set(collaborators))
         else:
-            print("initiate project: This action can only be performed with Administrative Privileges.")
+            print("add collaborators: This action can only be performed with Administrative Privileges.")
 
     if action == "remove":
         pass
 
     elif action == "share":
-        # if len(params) < 3:
-        #     print("Invalid Input: Please refer `./main.py help` for documentation")
-        #     return
 
         from_user = os.getlogin()
         project_id = input("Enter the project name: ")
@@ -105,14 +95,11 @@ def main():
               project_id=project_id)
 
     if action == "unshare":
-        # if len(params) < 3:
-        #     print("Invalid Input: Please refer `./main.py help` for documentation")
-        #     return
 
         from_user = os.getlogin()
+        project_id = input("Enter the project name: ")
         resource_to_unshare = input("Enter the resource name you want to un-share: ")
         to_users = input("Enter the user names to un-share with (space separated): ").split()
-        project_id = input("Enter the project name: ")
 
         unshare(from_username=from_user, resource_id_to_unshare=resource_to_unshare, to_usernames=set(to_users),
                 project_id=project_id)
