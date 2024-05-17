@@ -182,8 +182,10 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     # Get the directory path of the currently executing Python script
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
-    # Construct the full path to the shell script
+    # Construct the full path to the c wrappers
     wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
+    wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
+
 
     try:
         # Read all lines from the project file
@@ -232,9 +234,9 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         # Assign users to the group
         for user_id in correct_users:
             user = pwd.getpwuid(int(user_id))[0]
-            subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
+            # subprocess.run(["sudo", "usermod", "-aG", correct_context, user])
             # subprocess.run(["usermod", "-aG", correct_context, user])
-            # subprocess.run(["wrapper_usermod.sh", correct_context, user])
+            subprocess.run([wrapper_usermod_path, correct_context, user], check=True)
 
             # print(f"User '{user}' assigned to group '{correct_context}'.")
 
