@@ -228,7 +228,8 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         # Assign users to the group
         for user_id in correct_users:
             user = pwd.getpwuid(int(user_id))[0]
-            subprocess.run([wrapper_usermod_path, correct_context, user], check=True)
+            print(correct_context, user)
+            subprocess.run([wrapper_usermod_path, correct_context, user])
 
         # Assign rwx access to the group in the ACL of the file
         subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
