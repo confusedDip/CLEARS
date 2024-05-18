@@ -458,7 +458,7 @@ def remove_collaborator(project_id: str, users: set[str]):
                     # Remove the users from the group
                     for user_id in already_shared_users:
                         user = pwd.getpwuid(int(user_id))[0]
-                        subprocess.run(["sudo", "userdel", "-G", already_shared_context, user])
+                        subprocess.run(["sudo", "deluser", user, already_shared_context])
 
                     # Delete the group
                     subprocess.run(["sudo", "groupdel", already_shared_context])
