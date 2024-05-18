@@ -357,6 +357,8 @@ class Network:
                                 "correct_users": correct_users
                             })
 
+
+
                 # Delete the context from the network
                 self.del_context(current_context)
 

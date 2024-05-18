@@ -454,6 +454,16 @@ def remove_collaborator(project_id: str, users: set[str]):
                     # Remove rwx access to the group in the ACL of the file
                     already_shared_context = project_id + ''.join(sorted(already_shared_users))
                     subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+
+                    # Remove the users from the group
+                    for user_id in already_shared_users:
+                        user = pwd.getpwuid(int(user_id))[0]
+                        subprocess.run(["sudo", "userdel", "-G", already_shared_context, user])
+
+                    # Delete the group
+                    subprocess.run(["sudo", "groupdel", already_shared_context])
+
+                    # Sync Changes
                     subprocess.run(["sync"])
 
                     already_shared_unames = set(
