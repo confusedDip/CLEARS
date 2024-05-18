@@ -5,7 +5,8 @@ import sys
 
 sys.path.append('/usr/local/bin/authz')
 
-from utilities.collab import can_access, create_project, add_collaborator, remove_collaborator, can_share, can_unshare, share, unshare
+from utilities.collab import can_access, create_project, add_collaborator, remove_collaborator, can_share, can_unshare, \
+    share, unshare, end_project
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource
 import subprocess
@@ -106,7 +107,11 @@ def main():
                 project_id=project_id)
 
     elif action == "end":
-        pass
+        if is_in_sudoers():
+            project_id = input("Enter the project name: ")
+            end_project(project_id=project_id)
+        else:
+            print("end project: This action can only be performed with Administrative Privileges.")
 
     # create_project(project_id="P2")
     #

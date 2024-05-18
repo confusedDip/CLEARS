@@ -412,9 +412,9 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
 
 def remove_collaborator(project_id: str, users: set[str]):
     """
-    It is an administrative action to add collaborators to a project
+    It is an administrative action to remove collaborators to a project
     :param project_id: The unique identifier to refer to the project
-    :param users: List of user ids that are to be added to the project
+    :param users: List of user ids that are to be removed from the project
     """
     # Define the base directory
     base_dir = "/etc/project"
@@ -487,9 +487,71 @@ def remove_collaborator(project_id: str, users: set[str]):
         dump_network_to_file(project_file, network)
 
     except FileNotFoundError:
-        print("Error: Project not found.")
+        print(f"Error: Project {project_id} not found.")
     except Exception as e:
         print(f"Error: {e}")
+
+
+def end_project(project_id: str):
+    """
+    It is an administrative action to end a project
+    :param project_id: The unique identifier to refer to the project
+    """
+
+    # Define the base directory
+    base_dir = "/etc/project"
+
+    # Create the full path for the project
+    project_file = os.path.join(base_dir, project_id) + ".json"
+
+    try:
+        # Read all lines from the project file
+        with open(project_file, "r") as file:
+            data = json.load(file)
+            user_ids = set(data['all_user_ids'])
+            usernames = [pwd.getpwuid(int(user_id))[0] for (user_id) in user_ids]
+            remove_collaborator(project_id=project_id, users=set(usernames))
+
+        os.remove(project_file)
+        print(f"Project {project_id} ended successfully!")
+
+    except FileNotFoundError:
+        print(f"Error: Project {project_id} not found.")
+    except Exception as e:
+        print(f"Error: {e}")
+
+    # project_file_path = "/etc/project"
+    #
+    # # Flag to indicate if the project ID was found
+    # project_found = False
+    #
+    # try:
+    #     # Read all lines from the project file
+    #     with open(project_file_path, "r") as file:
+    #         lines = file.readlines()
+    #
+    #     # Open the project file in write mode to update it
+    #     with open(project_file_path, "w") as file:
+    #         # Check each line in the file
+    #         for line in lines:
+    #             # Check if the line starts with the project ID
+    #             if line.startswith(f"{project_id}:"):
+    #                 # Project ID found, set the flag
+    #                 project_found = True
+    #             else:
+    #                 # Write the line back to the file (excluding the project to be ended)
+    #                 file.write(line)
+    #
+    #     # Check if the project ID was found
+    #     if project_found:
+    #         print(f"Project '{project_id}' ended successfully.")
+    #     else:
+    #         print(f"Error: Project ID '{project_id}' not found.")
+    #
+    # except FileNotFoundError:
+    #     print("Error: Project file not found.")
+    # except Exception as e:
+    #     print(f"Error: {e}")
 
 
 def can_access(requester_id: str, resource_id: str) -> bool:
@@ -523,47 +585,3 @@ def can_access(requester_id: str, resource_id: str) -> bool:
             print("False!")
 
     return False
-
-
-def end_project(project_id: str):
-    #TODO
-    # network = get_network(project_id)
-    # # Remove the network from the set of networks
-    # remove_network(network)
-    # # Remove the project to each user's project list
-    # remove_project(user_ids=network.get_all_user_ids(), project_id=network.get_project_id())
-    # # Delete the project
-    # del network
-
-    project_file_path = "/etc/project"
-
-    # Flag to indicate if the project ID was found
-    project_found = False
-
-    try:
-        # Read all lines from the project file
-        with open(project_file_path, "r") as file:
-            lines = file.readlines()
-
-        # Open the project file in write mode to update it
-        with open(project_file_path, "w") as file:
-            # Check each line in the file
-            for line in lines:
-                # Check if the line starts with the project ID
-                if line.startswith(f"{project_id}:"):
-                    # Project ID found, set the flag
-                    project_found = True
-                else:
-                    # Write the line back to the file (excluding the project to be ended)
-                    file.write(line)
-
-        # Check if the project ID was found
-        if project_found:
-            print(f"Project '{project_id}' ended successfully.")
-        else:
-            print(f"Error: Project ID '{project_id}' not found.")
-
-    except FileNotFoundError:
-        print("Error: Project file not found.")
-    except Exception as e:
-        print(f"Error: {e}")
