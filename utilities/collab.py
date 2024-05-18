@@ -44,7 +44,6 @@ def dump_network_to_file(project_file: str, network: Network):
         print(f"Failed to create project '{network.get_project_id()}': {e.stderr}")
 
 
-
 def create_project(project_id: str):
     """
     It is an administrative action to initiate a project
@@ -407,6 +406,88 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
     except FileNotFoundError:
         print(f"Error: Project {project_id} not found.")
 
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+def remove_collaborator(project_id: str, users: set[str]):
+    """
+    It is an administrative action to add collaborators to a project
+    :param project_id: The unique identifier to refer to the project
+    :param users: List of user ids that are to be added to the project
+    """
+    # Define the base directory
+    base_dir = "/etc/project"
+
+    # Create the full path for the project
+    project_file = os.path.join(base_dir, project_id) + ".json"
+
+    # Get the directory path of the currently executing Python script
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    # Construct the full path to the c wrappers
+    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
+    wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
+
+    try:
+        # Read all lines from the project file
+        with open(project_file, "r") as file:
+            data = json.load(file)
+            network = Network(
+                user_ids=set(data['all_user_ids']),
+                project_id=data['project_id'],
+                root_context=data['root_context'],
+                contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
+            )
+
+        for username in users:
+            user_id = pwd.getpwnam(username).pw_uid
+            # network.add_new_user(user=str(new_user_id))
+            privileges_to_update = network.remove_user(user_id=str(user_id))
+            print(f"{username}(uid={user_id}) successfully removed from {project_id}")
+
+            for resource_path, item in privileges_to_update.items():
+                already_shared_users = item["already_shared_users"]
+                correct_users = item["correct_users"]
+
+                if already_shared_users is not None:
+                    # Remove rwx access to the group in the ACL of the file
+                    already_shared_context = project_id + ''.join(sorted(already_shared_users))
+                    subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+                    subprocess.run(["sync"])
+
+                    already_shared_unames = set(
+                        pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
+                    print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
+
+                if correct_users is not None:
+                    # Now assign to the correct context
+                    correct_context = project_id + ''.join(sorted(correct_users))
+
+                    with open("/etc/group", "r") as file:
+                        existing_groups = file.read().splitlines()
+                        group_exists = any(
+                            group_info.split(':')[0] == correct_context for group_info in existing_groups)
+
+                    # Add the new group if it doesn't exist
+                    if not group_exists:
+                        subprocess.run([wrapper_groupadd_path, correct_context])
+
+                    # Assign users to the group
+                    for user_id in correct_users:
+                        user = pwd.getpwuid(int(user_id))[0]
+                        subprocess.run([wrapper_usermod_path, correct_context, user])
+
+                    # Assign rwx access to the group in the ACL of the file
+                    subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+                    correct_unames = set(
+                        pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
+                    print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
+
+        dump_network_to_file(project_file, network)
+
+    except FileNotFoundError:
+        print("Error: Project not found.")
     except Exception as e:
         print(f"Error: {e}")
 

@@ -5,7 +5,7 @@ import sys
 
 sys.path.append('/usr/local/bin/authz')
 
-from utilities.collab import can_access, create_project, add_collaborator, can_share, can_unshare, share, unshare
+from utilities.collab import can_access, create_project, add_collaborator, remove_collaborator, can_share, can_unshare, share, unshare
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource
 import subprocess
@@ -48,10 +48,6 @@ def main():
         print("Invalid Input: Please refer `./main.py help` for documentation")
         return
 
-    # if len(sys.argv) == 2 and sys.argv[1].lower() != "help":
-    #    print("Invalid Input: Please refer `./main.py help` for documentation")
-    #    return
-
     if len(sys.argv) == 2 and sys.argv[1].lower() == "help":
         # print_help()
         return
@@ -70,7 +66,7 @@ def main():
             project_id = input("Enter the project name: ")
             create_project(project_id=project_id)
         else:
-            print("initiate project: This action can only be performed with Administrative Privileges.")
+            print("start project: This action can only be performed with Administrative Privileges.")
 
     elif action == "add":
 
@@ -82,7 +78,12 @@ def main():
             print("add collaborators: This action can only be performed with Administrative Privileges.")
 
     if action == "remove":
-        pass
+        if is_in_sudoers():
+            project_id = input("Enter the project name: ")
+            collaborators = input("Enter the user names to remove (space separated): ").split()
+            remove_collaborator(project_id, set(collaborators))
+        else:
+            print("remove collaborators: This action can only be performed with Administrative Privileges.")
 
     elif action == "share":
 
@@ -126,9 +127,11 @@ def main():
     # # can_unshare(from_username="pwn_dp", resource_id="data2.json", to_username="sefcom", project_id="P2")
     # # can_unshare(from_username="pwn_dp", resource_id="data.json", to_username="sefcom", project_id="P2")
     #
-    # share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data2.json", to_usernames={"bailey", "sefcom"})
-    # unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"cathy"})
-    # unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={"bailey"})
+    # share(project_id="P2", from_username="pwn_dp", resource_id_to_share="data2.json", to_usernames={"bailey",
+    # "sefcom"})
+    # unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={
+    # "cathy"}) unshare(project_id="P2", from_username="pwn_dp", resource_id_to_unshare="data.json", to_usernames={
+    # "bailey"})
 
     # t = 2: Alex invites collaborator Bailey and Cathy
     # invite_collaborator(user_id=creator, project_id="P1", users={"Bailey"})
