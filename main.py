@@ -3,7 +3,7 @@
 import os
 import sys
 
-sys.path.append('/usr/local/bin/authz')
+sys.path.append('/usr/bin/authz')
 
 from utilities.collab import can_access, create_project, add_collaborator, remove_collaborator, can_share, can_unshare, \
     share, unshare, end_project
