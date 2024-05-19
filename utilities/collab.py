@@ -435,7 +435,7 @@ def remove_collaborator(project_id: str, users: set[str]):
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Construct the full path to the c wrappers
-    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
+    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupad")
     wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
 
     try:
@@ -485,7 +485,8 @@ def remove_collaborator(project_id: str, users: set[str]):
                     # Now assign to the correct context
                     correct_context = project_id + ''.join(sorted(correct_users))
 
-                    with open("/etc/group", "r") as file:
+                    # with open("/etc/group", "r") as file:
+                    with open("/var/lib/extrausers/group", "r") as file:
                         existing_groups = file.read().splitlines()
                         group_exists = any(
                             group_info.split(':')[0] == correct_context for group_info in existing_groups)
