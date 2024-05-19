@@ -14,6 +14,12 @@ int main(int argc, char *argv[]) {
     const char *project_file = argv[1];
     const char *network_json = argv[2];
 
+    // Execute the usermod command with elevated privileges
+    if (setuid(0) != 0) {
+        perror("setuid");
+        return 1;
+    }
+
     FILE *file = fopen(project_file, "w");
     if (file == NULL) {
         fprintf(stderr, "Failed to create project '%s': %s\n", project_file, strerror(errno));
