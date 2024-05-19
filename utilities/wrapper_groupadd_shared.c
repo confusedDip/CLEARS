@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
             token = strtok(NULL, ":");
         }
         // Update max_gid if the current GID is higher
-        if (gid > max_gid && strcmp(token, "nogroup") != 0) {
+        if (gid > max_gid && gid < 65534) {
             max_gid = gid;
         }
     }
@@ -68,12 +68,6 @@ int main(int argc, char *argv[]) {
     // Append the new group entry to the file
     const char *group_name = argv[1];
     fprintf(group_file, "%s:x:%d:", group_name, new_gid);
-//    for (int i = 0; i < num_users; ++i) {
-//        fprintf(group_file, "%s", users[i]);
-//        if (i < num_users - 1) {
-//            fprintf(group_file, ",");
-//        }
-//    }
     fprintf(group_file, "\n");
 
     // Close the file
