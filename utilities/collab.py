@@ -5,7 +5,7 @@ import json
 from classes.collab import Network, Networks, from_dict
 from utilities.user import get_user, add_project, remove_project
 from utilities.resource import get_resource
-import os, pwd
+import os, pwd, grp
 import subprocess
 
 
@@ -207,12 +207,14 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
-            subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            # subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])   # nsfv3
+            grp_id = grp.getgrnam(already_shared_context).gr_gid
+            subprocess.run(["nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
             subprocess.run(["sync"])
 
             already_shared_unames = set(
                 pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
-            print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
+            print(f"Collaboration '{already_shared_unames}' removed access to file '{resource_path}'.")
 
         # Now assign to the correct context
         correct_context = project_id + ''.join(sorted(correct_users))
@@ -232,11 +234,13 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             subprocess.run([wrapper_usermod_path, correct_context, user])
 
         # Assign rwx access to the group in the ACL of the file
-        subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
+        # subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
+        grp_id = grp.getgrnam(correct_context).gr_gid
+        subprocess.run(["nfs4_setfacl", "-a", f"A:g:{grp_id}:RX", resource_path])
         subprocess.run(["sync"])
 
         correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
-        print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
+        print(f"Collaboration '{correct_unames}' granted access to file '{resource_path}'.")
 
         # Dump the network to the project file
         dump_network_to_file(project_file, network)
@@ -370,12 +374,15 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
-            subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            # subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            grp_id = grp.getgrnam(already_shared_context).gr_gid
+            subprocess.run(["nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
+
             subprocess.run(["sync"])
 
             already_shared_unames = set(
                 pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
-            print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
+            print(f"Collaboration '{already_shared_unames}' removed access to file '{resource_path}'.")
 
         if correct_users is not None:
             # Now assign to the correct context
@@ -395,10 +402,12 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
                 subprocess.run([wrapper_usermod_path, correct_context, user])
 
             # Assign rwx access to the group in the ACL of the file
-            subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+            # subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+            grp_id = grp.getgrnam(correct_context).gr_gid
+            subprocess.run(["nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
             correct_unames = set(
                 pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
-            print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
+            print(f"Collaboration '{correct_unames}' granted access to file '{resource_path}'.")
 
         # Dump the network to the project file
         dump_network_to_file(project_file, network)
@@ -453,7 +462,9 @@ def remove_collaborator(project_id: str, users: set[str]):
                 if already_shared_users is not None:
                     # Remove rwx access to the group in the ACL of the file
                     already_shared_context = project_id + ''.join(sorted(already_shared_users))
-                    subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+                    # subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+                    grp_id = grp.getgrnam(already_shared_context).gr_gid
+                    subprocess.run(["sudo", "nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
 
                     # Remove the users from the group
                     for user_id in already_shared_users:
@@ -468,7 +479,7 @@ def remove_collaborator(project_id: str, users: set[str]):
 
                     already_shared_unames = set(
                         pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
-                    print(f"Collaboration '{already_shared_unames}' removed rwx access to file '{resource_path}'.")
+                    print(f"Collaboration '{already_shared_unames}' removed access to file '{resource_path}'.")
 
                 if correct_users is not None:
                     # Now assign to the correct context
@@ -489,10 +500,13 @@ def remove_collaborator(project_id: str, users: set[str]):
                         subprocess.run([wrapper_usermod_path, correct_context, user])
 
                     # Assign rwx access to the group in the ACL of the file
-                    subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+                    # subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+                    grp_id = grp.getgrnam(correct_context).gr_gid
+                    subprocess.run(["sudo", "nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
+
                     correct_unames = set(
                         pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
-                    print(f"Collaboration '{correct_unames}' granted rwx access to file '{resource_path}'.")
+                    print(f"Collaboration '{correct_unames}' granted access to file '{resource_path}'.")
 
         dump_network_to_file(project_file, network)
 
