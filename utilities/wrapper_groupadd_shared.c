@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 
     // Append the new group entry to the file
     const char *group_name = argv[1];
-    fprintf(group_file, "%s:x:%d:", group_name, gid);
+    fprintf(group_file, "%s:x:%d:", group_name, new_gid);
 //    for (int i = 0; i < num_users; ++i) {
 //        fprintf(group_file, "%s", users[i]);
 //        if (i < num_users - 1) {
