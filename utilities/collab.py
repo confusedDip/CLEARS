@@ -219,9 +219,17 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         # Now assign to the correct context
         correct_context = project_id + ''.join(sorted(correct_users))
 
+        # Check /etc/group
         with open("/etc/group", "r") as file:
             existing_groups = file.read().splitlines()
-            group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+            group_exists_etc = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+
+        # Check /var/lib/extrausers/group
+        with open("/var/lib/extrausers/group", "r") as file:
+            existing_groups = file.read().splitlines()
+            group_exists_extra = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+
+        group_exists = group_exists_etc or group_exists_extra
 
         # Add the new group if it doesn't exist
         if not group_exists:
