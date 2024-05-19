@@ -3,6 +3,9 @@
 #include <unistd.h>
 #include <string.h>
 
+#define MAX_LINE_LENGTH 1024
+
+
 int main(int argc, char *argv[]) {
     // Check if correct number of arguments are provided
     if (argc != 3) {
