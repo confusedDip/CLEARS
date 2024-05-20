@@ -5,7 +5,7 @@ import sys
 
 sys.path.append('/usr/bin/authz')
 
-from utilities.collab import can_access, create_project, add_collaborator, remove_collaborator, can_share, can_unshare, \
+from utilities.collab import create_project, add_collaborator, remove_collaborator, can_share, can_unshare, \
     share, unshare, end_project
 from utilities.user import create_user, get_user
 from utilities.resource import create_resource

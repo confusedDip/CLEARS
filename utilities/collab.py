@@ -5,23 +5,16 @@ import json
 from classes.collab import Network, Networks, from_dict
 from utilities.user import get_user, add_project, remove_project
 from utilities.resource import get_resource
+from ldap.connect_ldap import connect_to_ldap
+from ldap.add_user import add_user_to_group
+from ldap.remove_user import remove_user_from_group
+from ldap.create_group import create_group
+from ldap.delete_group import delete_group
 import os, pwd, grp
 import subprocess
 
 
 def dump_network_to_file(project_file: str, network: Network):
-    # try:
-    #     # Create the project directory
-    #     with open(project_file, "w") as file:
-    #         json.dump(network.to_dict(), file, indent=4)
-    #     print(f"Project '{network.get_project_id()}' created/updated successfully.")
-    #
-    # except FileExistsError:
-    #     print(f"Project '{network.get_project_id()}' already exists.")
-    # except OSError as e:
-    #     print(f"Failed to create project '{network.get_project_id()}': {e}")
-    # Serialize the network to a JSON string
-
     network_json = json.dumps(network.to_dict(), indent=4)
 
     # Get the directory path of the currently executing Python script
@@ -42,6 +35,32 @@ def dump_network_to_file(project_file: str, network: Network):
 
     except subprocess.CalledProcessError as e:
         print(f"Failed to create project '{network.get_project_id()}': {e.stderr}")
+
+
+def group_exists_and_max_gid(group_name):
+    try:
+        max_gid = -1
+        group_exists = False
+
+        # Run getent group command and capture output
+        output = subprocess.check_output(['getent', 'group']).decode('utf-8')
+        lines = output.strip().split('\n')
+
+        for line in lines:
+            parts = line.split(':')
+            if parts[0] == group_name:
+                group_exists = True
+
+                # Extract the group ID
+                gid = int(parts[2])
+
+                if gid > max_gid and 10000 < gid < 20000:
+                    max_gid = gid
+        return group_exists, max_gid
+
+    except subprocess.CalledProcessError:
+        # Handle error if getent group command fails
+        return False, -1
 
 
 def create_project(project_id: str):
@@ -115,6 +134,16 @@ def can_share(from_username: str, resource_id: str, to_username: str, project_id
     from_user_id = pwd.getpwnam(from_username).pw_uid
     to_user_id = pwd.getpwnam(to_username).pw_uid
 
+    # Step 0: self-share is not permitted
+    if from_user_id == to_user_id:
+        print(f"Sharing Error: An attempt to self-share was made!")
+        return False
+
+    # Step 0: no to_user mentioned
+    if to_username == '':
+        print(f"Sharing Error: No recipient mentioned!")
+        return False
+
     # Step 1: Obtain the owner information
     resource_path = os.path.abspath(resource_id)
     resource_metadata = os.stat(resource_path)
@@ -186,6 +215,9 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
     wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
 
+    # Setup the LDAP Connection
+    conn = connect_to_ldap()
+
     try:
         # Read all lines from the project file
         with open(project_file, "r") as file:
@@ -222,26 +254,37 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         correct_context = project_id + ''.join(sorted(correct_users))
 
         # Check /etc/group
-        with open("/etc/group", "r") as file:
-            existing_groups = file.read().splitlines()
-            group_exists_etc = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+        # with open("/etc/group", "r") as file:
+        #     existing_groups = file.read().splitlines()
+        #     group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+
+        group_exists, max_gid = group_exists_and_max_gid(group_name=correct_context)
 
         # Check /var/lib/extrausers/group
-        with open("/var/lib/extrausers/group", "r") as file:
-            existing_groups = file.read().splitlines()
-            group_exists_extra = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
-
-        group_exists = group_exists_etc or group_exists_extra
+        # with open("/var/lib/extrausers/group", "r") as file:
+        #     existing_groups = file.read().splitlines()
+        #     group_exists_extra = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
 
         # Add the new group if it doesn't exist
         if not group_exists:
-            subprocess.run([wrapper_groupadd_path, correct_context])
+            # subprocess.run([wrapper_groupadd_path, correct_context])
+            create_group(
+                conn=conn,
+                group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
+                group_name=correct_context,
+                gid_number=max_gid + 1
+            )
 
         # Assign users to the group
         for user_id in correct_users:
             user = pwd.getpwuid(int(user_id))[0]
             # print(correct_context, user)
-            subprocess.run([wrapper_usermod_path, correct_context, user])
+            # subprocess.run([wrapper_usermod_path, correct_context, user])
+            add_user_to_group(
+                conn=conn,
+                group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
+                user_uid=user_id
+            )
 
         # Assign rwx access to the group in the ACL of the file
         try:
@@ -365,6 +408,9 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
     wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
     wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
 
+    # Setup the ldap connection
+    conn = connect_to_ldap()
+
     try:
         # Read all lines from the project file
         with open(project_file, "r") as file:
@@ -402,18 +448,41 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
             # Now assign to the correct context
             correct_context = project_id + ''.join(sorted(correct_users))
 
-            with open("/etc/group", "r") as file:
-                existing_groups = file.read().splitlines()
-                group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+            # with open("/etc/group", "r") as file:
+            #     existing_groups = file.read().splitlines()
+            #     group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
+            #
+            # # Add the new group if it doesn't exist
+            # if not group_exists:
+            #     subprocess.run([wrapper_groupadd_path, correct_context])
+            #
+            # # Assign users to the group
+            # for user_id in correct_users:
+            #     user = pwd.getpwuid(int(user_id))[0]
+            #     subprocess.run([wrapper_usermod_path, correct_context, user])
+
+            group_exists, max_gid = group_exists_and_max_gid(group_name=correct_context)
 
             # Add the new group if it doesn't exist
             if not group_exists:
-                subprocess.run([wrapper_groupadd_path, correct_context])
+                # subprocess.run([wrapper_groupadd_path, correct_context])
+                create_group(
+                    conn=conn,
+                    group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
+                    group_name=correct_context,
+                    gid_number=max_gid + 1
+                )
 
             # Assign users to the group
             for user_id in correct_users:
                 user = pwd.getpwuid(int(user_id))[0]
-                subprocess.run([wrapper_usermod_path, correct_context, user])
+                # print(correct_context, user)
+                # subprocess.run([wrapper_usermod_path, correct_context, user])
+                add_user_to_group(
+                    conn=conn,
+                    group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
+                    user_uid=user_id
+                )
 
             # Assign rwx access to the group in the ACL of the file
             try:
@@ -456,6 +525,9 @@ def remove_collaborator(project_id: str, users: set[str]):
     wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
     wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
 
+    # Setup the LDAP connection
+    conn = connect_to_ldap()
+
     try:
         # Read all lines from the project file
         with open(project_file, "r") as file:
@@ -493,7 +565,7 @@ def remove_collaborator(project_id: str, users: set[str]):
                     # Remove the users from the group
                     for user_id in already_shared_users:
                         user = pwd.getpwuid(int(user_id))[0]
-                        user_groups_to_remove.add((user, already_shared_context))
+                        user_groups_to_remove.add((user_id, already_shared_context))
                         groups_to_delete.add(already_shared_context)
 
                     # Sync Changes
@@ -508,19 +580,39 @@ def remove_collaborator(project_id: str, users: set[str]):
                     correct_context = project_id + ''.join(sorted(correct_users))
 
                     # with open("/var/lib/extrausers/group", "r") as file:
-                    with open("/etc/group", "r") as file:
-                        existing_groups = file.read().splitlines()
-                        group_exists = any(
-                            group_info.split(':')[0] == correct_context for group_info in existing_groups)
+                    # with open("/etc/group", "r") as file:
+                    #     existing_groups = file.read().splitlines()
+                    #     group_exists = any(
+                    #         group_info.split(':')[0] == correct_context for group_info in existing_groups)
+                    #
+                    # # Add the new group if it doesn't exist
+                    # if not group_exists:
+                    #     subprocess.run([wrapper_groupadd_path, correct_context])
+                    #
+                    # # Assign users to the group
+                    # for user_id in correct_users:
+                    #     user = pwd.getpwuid(int(user_id))[0]
+                    #     subprocess.run([wrapper_usermod_path, correct_context, user])
+
+                    group_exists, max_gid = group_exists_and_max_gid(group_name=correct_context)
 
                     # Add the new group if it doesn't exist
                     if not group_exists:
-                        subprocess.run([wrapper_groupadd_path, correct_context])
+                        create_group(
+                            conn=conn,
+                            group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
+                            group_name=correct_context,
+                            gid_number=max_gid + 1
+                        )
 
                     # Assign users to the group
                     for user_id in correct_users:
                         user = pwd.getpwuid(int(user_id))[0]
-                        subprocess.run([wrapper_usermod_path, correct_context, user])
+                        add_user_to_group(
+                            conn=conn,
+                            group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
+                            user_uid=user_id
+                        )
 
                     # Assign rwx access to the group in the ACL of the file
                     try:
@@ -537,11 +629,17 @@ def remove_collaborator(project_id: str, users: set[str]):
 
         # Remove the user-group associations
         for user, group in user_groups_to_remove:
-            subprocess.run(["sudo", "deluser", user, group])
+            # subprocess.run(["sudo", "deluser", user, group])
+            remove_user_from_group(
+                conn=conn,
+                group_dn=f"cn={group},ou=groups,dc=rc,dc=example,dc=org",
+                user_uid=user
+            )
 
         # Delete the groups
         for group in groups_to_delete:
-            subprocess.run(["sudo", "groupdel", group])
+            # subprocess.run(["sudo", "groupdel", group])
+            delete_group(conn=conn, group_dn=f"cn={group},ou=groups,dc=rc,dc=example,dc=org")
 
         dump_network_to_file(project_file, network)
 
@@ -579,68 +677,34 @@ def end_project(project_id: str):
     except Exception as e:
         print(f"Error: {e}")
 
-    # project_file_path = "/etc/project"
-    #
-    # # Flag to indicate if the project ID was found
-    # project_found = False
-    #
-    # try:
-    #     # Read all lines from the project file
-    #     with open(project_file_path, "r") as file:
-    #         lines = file.readlines()
-    #
-    #     # Open the project file in write mode to update it
-    #     with open(project_file_path, "w") as file:
-    #         # Check each line in the file
-    #         for line in lines:
-    #             # Check if the line starts with the project ID
-    #             if line.startswith(f"{project_id}:"):
-    #                 # Project ID found, set the flag
-    #                 project_found = True
-    #             else:
-    #                 # Write the line back to the file (excluding the project to be ended)
-    #                 file.write(line)
-    #
-    #     # Check if the project ID was found
-    #     if project_found:
-    #         print(f"Project '{project_id}' ended successfully.")
-    #     else:
-    #         print(f"Error: Project ID '{project_id}' not found.")
-    #
-    # except FileNotFoundError:
-    #     print("Error: Project file not found.")
-    # except Exception as e:
-    #     print(f"Error: {e}")
-
-
-def can_access(requester_id: str, resource_id: str) -> bool:
-    print(f"Requester: {requester_id}, Requested Resource: {resource_id}")
-
-    # Obtain the resource from the requested resource_id
-    resource = get_resource(resource_id)
-    # Obtain the owner uid
-    owner_id = resource.get_owner()
-
-    # Always allow the owner to access
-    if requester_id == owner_id:
-        return True
-
-    # Obtain the mutual projects of the owner and the requestor
-    owner_projects = get_user(owner_id).get_projects()
-    requester_projects = get_user(requester_id).get_projects()
-    mutual_projects = owner_projects.intersection(requester_projects)
-
-    # If they do not work on any common project, deny!
-    if len(mutual_projects) == 0:
-        return False
-
-    # Explore the collaboration network for each project to make a decision
-    for project in mutual_projects:
-        network = get_network(project)
-        print(f"Checking the Collaboration Network for Project {project}")
-        if network.can_access(requester_id, resource_id):
-            return True
-        else:
-            print("False!")
-
-    return False
+# def can_access(requester_id: str, resource_id: str) -> bool:
+#     print(f"Requester: {requester_id}, Requested Resource: {resource_id}")
+#
+#     # Obtain the resource from the requested resource_id
+#     resource = get_resource(resource_id)
+#     # Obtain the owner uid
+#     owner_id = resource.get_owner()
+#
+#     # Always allow the owner to access
+#     if requester_id == owner_id:
+#         return True
+#
+#     # Obtain the mutual projects of the owner and the requestor
+#     owner_projects = get_user(owner_id).get_projects()
+#     requester_projects = get_user(requester_id).get_projects()
+#     mutual_projects = owner_projects.intersection(requester_projects)
+#
+#     # If they do not work on any common project, deny!
+#     if len(mutual_projects) == 0:
+#         return False
+#
+#     # Explore the collaboration network for each project to make a decision
+#     for project in mutual_projects:
+#         network = get_network(project)
+#         print(f"Checking the Collaboration Network for Project {project}")
+#         if network.can_access(requester_id, resource_id):
+#             return True
+#         else:
+#             print("False!")
+#
+#     return False
