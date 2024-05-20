@@ -453,7 +453,7 @@ def remove_collaborator(project_id: str, users: set[str]):
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Construct the full path to the c wrappers
-    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupad")
+    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
     wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
 
     try:
