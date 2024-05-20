@@ -345,6 +345,7 @@ class Network:
                         owner_uid = str(resource_metadata.st_uid)
 
                         # Step 3: Check if the user have been shared anything within the context, then un-share it
+                        # and re-share it with some lower context
                         if owner_uid != user_id:
                             already_shared_users, correct_users = self.unshare_resource(
                                 from_user_id=owner_uid,
@@ -357,7 +358,12 @@ class Network:
                                 "correct_users": correct_users
                             })
 
-
+                        # Step 4: Check if the user has shared anything within the context, then un-share it
+                        else:
+                            privileges_to_update[resource_path] = dict({
+                                "already_shared_users": current_context_users,
+                                "correct_users": None
+                            })
 
                 # Delete the context from the network
                 self.del_context(current_context)
