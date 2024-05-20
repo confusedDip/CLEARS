@@ -386,9 +386,11 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
-            # subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
-            grp_id = grp.getgrnam(already_shared_context).gr_gid
-            subprocess.run(["nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
+            try:
+                subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])
+            except Exception as e:
+                grp_id = grp.getgrnam(already_shared_context).gr_gid
+                subprocess.run(["nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
 
             subprocess.run(["sync"])
 
@@ -414,9 +416,13 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
                 subprocess.run([wrapper_usermod_path, correct_context, user])
 
             # Assign rwx access to the group in the ACL of the file
-            # subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
-            grp_id = grp.getgrnam(correct_context).gr_gid
-            subprocess.run(["nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
+            try:
+                subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+            except Exception as e:
+                grp_id = grp.getgrnam(correct_context).gr_gid
+                subprocess.run(["nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
+
+            subprocess.run(["sync"])
             correct_unames = set(
                 pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
             print(f"Collaboration '{correct_unames}' granted access to file '{resource_path}'.")
@@ -474,9 +480,13 @@ def remove_collaborator(project_id: str, users: set[str]):
                 if already_shared_users is not None:
                     # Remove rwx access to the group in the ACL of the file
                     already_shared_context = project_id + ''.join(sorted(already_shared_users))
-                    # subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
-                    grp_id = grp.getgrnam(already_shared_context).gr_gid
-                    subprocess.run(["sudo", "nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
+                    try:
+                        subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+                    except Exception as e:
+                        grp_id = grp.getgrnam(already_shared_context).gr_gid
+                        subprocess.run(["sudo", "nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
+
+                    subprocess.run(["sync"])
 
                     # Remove the users from the group
                     for user_id in already_shared_users:
@@ -497,8 +507,8 @@ def remove_collaborator(project_id: str, users: set[str]):
                     # Now assign to the correct context
                     correct_context = project_id + ''.join(sorted(correct_users))
 
-                    # with open("/etc/group", "r") as file:
-                    with open("/var/lib/extrausers/group", "r") as file:
+                    with open("/etc/group", "r") as file:
+                    # with open("/var/lib/extrausers/group", "r") as file:
                         existing_groups = file.read().splitlines()
                         group_exists = any(
                             group_info.split(':')[0] == correct_context for group_info in existing_groups)
@@ -513,9 +523,13 @@ def remove_collaborator(project_id: str, users: set[str]):
                         subprocess.run([wrapper_usermod_path, correct_context, user])
 
                     # Assign rwx access to the group in the ACL of the file
-                    # subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
-                    grp_id = grp.getgrnam(correct_context).gr_gid
-                    subprocess.run(["sudo", "nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
+                    try:
+                        subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+                    except Exception as e:
+                        grp_id = grp.getgrnam(correct_context).gr_gid
+                        subprocess.run(["sudo", "nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
+
+                    subprocess.run(["sync"])
 
                     correct_unames = set(
                         pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
