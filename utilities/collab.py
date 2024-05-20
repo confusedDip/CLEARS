@@ -469,7 +469,6 @@ def remove_collaborator(project_id: str, users: set[str]):
 
         for username in users:
             user_id = pwd.getpwnam(username).pw_uid
-            # network.add_new_user(user=str(new_user_id))
             privileges_to_update = network.remove_user(user_id=str(user_id))
             print(f"{username}(uid={user_id}) successfully removed from {project_id}")
 
@@ -491,10 +490,16 @@ def remove_collaborator(project_id: str, users: set[str]):
                     # Remove the users from the group
                     for user_id in already_shared_users:
                         user = pwd.getpwuid(int(user_id))[0]
-                        subprocess.run(["sudo", "deluser", user, already_shared_context])
+                        try:
+                            subprocess.run(["sudo", "deluser", user, already_shared_context])
+                        except Exception as e:
+                            pass
 
                     # Delete the group
-                    subprocess.run(["sudo", "groupdel", already_shared_context])
+                    try:
+                        subprocess.run(["sudo", "groupdel", already_shared_context])
+                    except Exception as e:
+                        pass
 
                     # Sync Changes
                     subprocess.run(["sync"])
@@ -507,8 +512,8 @@ def remove_collaborator(project_id: str, users: set[str]):
                     # Now assign to the correct context
                     correct_context = project_id + ''.join(sorted(correct_users))
 
-                    with open("/etc/group", "r") as file:
                     # with open("/var/lib/extrausers/group", "r") as file:
+                    with open("/etc/group", "r") as file:
                         existing_groups = file.read().splitlines()
                         group_exists = any(
                             group_info.split(':')[0] == correct_context for group_info in existing_groups)
