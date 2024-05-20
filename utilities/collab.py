@@ -467,6 +467,9 @@ def remove_collaborator(project_id: str, users: set[str]):
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
+        groups_to_delete = set()
+        user_groups_to_remove = set()
+
         for username in users:
             user_id = pwd.getpwnam(username).pw_uid
             privileges_to_update = network.remove_user(user_id=str(user_id))
@@ -490,16 +493,18 @@ def remove_collaborator(project_id: str, users: set[str]):
                     # Remove the users from the group
                     for user_id in already_shared_users:
                         user = pwd.getpwuid(int(user_id))[0]
-                        try:
-                            subprocess.run(["sudo", "deluser", user, already_shared_context])
-                        except Exception as e:
-                            pass
+                        user_groups_to_remove.add((user, already_shared_context))
+                        groups_to_delete.add(already_shared_context)
+                        # try:
+                        #     subprocess.run(["sudo", "deluser", user, already_shared_context])
+                        # except Exception as e:
+                        #     pass
 
-                    # Delete the group
-                    try:
-                        subprocess.run(["sudo", "groupdel", already_shared_context])
-                    except Exception as e:
-                        pass
+                    # # Delete the group
+                    # try:
+                    #     subprocess.run(["sudo", "groupdel", already_shared_context])
+                    # except Exception as e:
+                    #     pass
 
                     # Sync Changes
                     subprocess.run(["sync"])
@@ -539,6 +544,15 @@ def remove_collaborator(project_id: str, users: set[str]):
                     correct_unames = set(
                         pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
                     print(f"Collaboration '{correct_unames}' granted access to file '{resource_path}'.")
+
+        # Remove the user-group associations
+        for user, group in user_groups_to_remove:
+            subprocess.run(["sudo", "deluser", user, group])
+
+        # Delete the groups
+        for group in groups_to_delete:
+            subprocess.run(["sudo", "groupdel", group])
+
 
         dump_network_to_file(project_file, network)
 
