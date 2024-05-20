@@ -51,11 +51,12 @@ def group_exists_and_max_gid(group_name):
             if parts[0] == group_name:
                 group_exists = True
 
-                # Extract the group ID
-                gid = int(parts[2])
+            # Extract the group ID
+            gid = int(parts[2])
 
-                if gid > max_gid and 10000 < gid < 20000:
-                    max_gid = gid
+            if gid > max_gid and 10000 < gid < 20000:
+                max_gid = gid
+
         return group_exists, max_gid
 
     except subprocess.CalledProcessError:
