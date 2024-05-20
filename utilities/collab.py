@@ -208,7 +208,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
             try:
-                subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])   # nsfv3
+                subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])  # nsfv3
             except Exception as e:
                 grp_id = grp.getgrnam(already_shared_context).gr_gid
                 subprocess.run(["nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
@@ -495,16 +495,6 @@ def remove_collaborator(project_id: str, users: set[str]):
                         user = pwd.getpwuid(int(user_id))[0]
                         user_groups_to_remove.add((user, already_shared_context))
                         groups_to_delete.add(already_shared_context)
-                        # try:
-                        #     subprocess.run(["sudo", "deluser", user, already_shared_context])
-                        # except Exception as e:
-                        #     pass
-
-                    # # Delete the group
-                    # try:
-                    #     subprocess.run(["sudo", "groupdel", already_shared_context])
-                    # except Exception as e:
-                    #     pass
 
                     # Sync Changes
                     subprocess.run(["sync"])
@@ -553,7 +543,6 @@ def remove_collaborator(project_id: str, users: set[str]):
         for group in groups_to_delete:
             subprocess.run(["sudo", "groupdel", group])
 
-
         dump_network_to_file(project_file, network)
 
     except FileNotFoundError:
@@ -582,7 +571,7 @@ def end_project(project_id: str):
             usernames = [pwd.getpwuid(int(user_id))[0] for (user_id) in user_ids]
             remove_collaborator(project_id=project_id, users=set(usernames))
 
-        os.remove(project_file)
+        # os.remove(project_file)
         print(f"Project {project_id} ended successfully!")
 
     except FileNotFoundError:
