@@ -283,7 +283,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             add_user_to_group(
                 conn=conn,
                 group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
-                user_uid=user_id
+                user_uid=user
             )
 
         # Assign rwx access to the group in the ACL of the file
@@ -481,7 +481,7 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
                 add_user_to_group(
                     conn=conn,
                     group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
-                    user_uid=user_id
+                    user_uid=user
                 )
 
             # Assign rwx access to the group in the ACL of the file
@@ -611,7 +611,7 @@ def remove_collaborator(project_id: str, users: set[str]):
                         add_user_to_group(
                             conn=conn,
                             group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
-                            user_uid=user_id
+                            user_uid=user
                         )
 
                     # Assign rwx access to the group in the ACL of the file
