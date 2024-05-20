@@ -207,9 +207,11 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         if already_shared_users is not None:
             # Remove rwx access to the group in the ACL of the file
             already_shared_context = project_id + ''.join(sorted(already_shared_users))
-            # subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])   # nsfv3
-            grp_id = grp.getgrnam(already_shared_context).gr_gid
-            subprocess.run(["nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
+            try:
+                subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])   # nsfv3
+            except Exception as e:
+                grp_id = grp.getgrnam(already_shared_context).gr_gid
+                subprocess.run(["nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
             subprocess.run(["sync"])
 
             already_shared_unames = set(
@@ -242,9 +244,11 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             subprocess.run([wrapper_usermod_path, correct_context, user])
 
         # Assign rwx access to the group in the ACL of the file
-        # subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
-        grp_id = grp.getgrnam(correct_context).gr_gid
-        subprocess.run(["nfs4_setfacl", "-a", f"A:g:{grp_id}:RX", resource_path])
+        try:
+            subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_id_to_share])
+        except Exception as e:
+            grp_id = grp.getgrnam(correct_context).gr_gid
+            subprocess.run(["nfs4_setfacl", "-a", f"A:g:{grp_id}:RX", resource_path])
         subprocess.run(["sync"])
 
         correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
