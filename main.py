@@ -12,12 +12,22 @@ from utilities.resource import create_resource
 import subprocess
 
 
+# def is_in_sudoers():
+#     try:
+#         # Attempt to execute a command that requires sudo
+#         subprocess.check_call(['sudo', '-n', 'ls'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+#         return True
+#     except subprocess.CalledProcessError:
+#         return False
+
 def is_in_sudoers():
     try:
         # Attempt to execute a command that requires sudo
-        subprocess.check_call(['sudo', '-n', 'ls'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(['sudo', '-n', 'true'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     except subprocess.CalledProcessError:
+        return False
+    except PermissionError:
         return False
 
 
