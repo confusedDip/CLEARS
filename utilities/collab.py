@@ -361,7 +361,15 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         print(f"Error: Project {project_id} not found. {e}")
 
     except Exception as e:
-        print(f"Error: {e}")
+        # Print the exception type
+        print(f"Exception type: {type(e).__name__}")
+
+        # Print the full exception information including traceback
+        import traceback
+        traceback.print_exc()
+
+        # Print the error message
+        print(f"Error message: {str(e)}")
 
 
 def can_unshare(from_username: str, resource_id: str, to_username: str, project_id: str, resource_type: int) -> bool:
