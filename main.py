@@ -90,7 +90,7 @@ def main():
         from_user = os.getlogin()
         project_id = input("Enter the project name: ")
         resource_type = input("Enter the resource type you want to share:\n\tSubmit 1 for Files/Directories\n\tSubmit "
-                              "2 for Computational Partition\n>")
+                              "2 for Computational Partition\n> ")
         resource_to_share = input("Enter the resource name you want to share: ")
         to_users = input("Enter the user names to share with (space separated): ").split()
 
@@ -101,11 +101,14 @@ def main():
 
         from_user = os.getlogin()
         project_id = input("Enter the project name: ")
+
         resource_to_unshare = input("Enter the resource name you want to un-share: ")
         to_users = input("Enter the user names to un-share with (space separated): ").split()
-
+        resource_type = input("Enter the resource type you want to un-share:\n\tSubmit 1 for "
+                              "Files/Directories\n\tSubmit"
+                              "2 for Computational Partition\n> ")
         unshare(from_username=from_user, resource_id_to_unshare=resource_to_unshare, to_usernames=set(to_users),
-                project_id=project_id)
+                project_id=project_id, resource_type=int(resource_type))
 
     elif action == "end":
         if is_in_sudoers():
