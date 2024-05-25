@@ -556,7 +556,7 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
             pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
         print(f"Collaboration '{already_shared_unames}' removed access to resource '{resource_path}'.")
 
-        # Now perform the privilge-contraction and re-share privileges
+        # Now perform the privilege-contraction and re-share privileges
         if correct_users is not None:
             # Now assign to the correct context
             correct_context = project_id + ''.join(sorted(correct_users))
