@@ -308,6 +308,10 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
 
                 subprocess.run(["sync"])
 
+                already_shared_unames = set(
+                    pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
+                print(f"Collaboration '{already_shared_unames}' removed access to resource '{resource_path}'.")
+
             # Assign rwx access to the group in the ACL of the file
             if get_file_system(resource_path) == "nfs":
                 grp_id = grp.getgrnam(correct_context).gr_gid
@@ -323,8 +327,11 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             result = subprocess.run(['scontrol', 'show', 'partition', resource_path],
                                     stdout=subprocess.PIPE, text=True)
             relevant_output = result.stdout.splitlines()[1]  # 'AllowGroups=grp_c AllowAccounts=ALL AllowQos=ALL'
+            print(relevant_output)
             relevant_config = relevant_output.split()[0]  # 'AllowGroups=grp_c'
+            print(relevant_config)
             existing_allowed_groups = set(relevant_config.split("=")[1].split(","))  # ('grp_c')
+            print(existing_allowed_groups)
 
             existing_allowed_groups.add(correct_context)
 
@@ -333,16 +340,16 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
                 already_shared_context = project_id + ''.join(sorted(already_shared_users))
                 existing_allowed_groups.remove(already_shared_context)
 
+                already_shared_unames = set(
+                    pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
+                print(f"Collaboration '{already_shared_unames}' removed access to resource '{resource_path}'.")
+
             # Assign access to the group
             correct_new_group = existing_allowed_groups
             new_context = ','.join(correct_new_group)
             subprocess.run([wrapper_supdate_path, resource_path, new_context])
 
         # Print final Success Message
-
-        already_shared_unames = set(
-            pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
-        print(f"Collaboration '{already_shared_unames}' removed access to resource '{resource_path}'.")
 
         correct_unames = set(pwd.getpwuid(int(correct_user))[0] for correct_user in correct_users)
         print(f"Collaboration '{correct_unames}' granted access to resource '{resource_path}'.")
@@ -357,9 +364,10 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         print(f"Error: {e}")
 
 
-def can_unshare(from_username: str, resource_id: str, to_username: str, project_id: str) -> bool:
+def can_unshare(from_username: str, resource_id: str, to_username: str, project_id: str, resource_type: int) -> bool:
     """
     This is the un-sharing authorization relation that supports admin defined policies
+    :param resource_type: type of the resource (1:file/directory, 2:computational partition)
     :param from_username: which user is requesting to unshare?
     :param resource_id: what resource (privilege) is concerned?
     :param to_username: to whom is it being unshared?
@@ -370,11 +378,38 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
     from_user_id = pwd.getpwnam(from_username).pw_uid
     to_user_id = pwd.getpwnam(to_username).pw_uid
 
+    # Step 0: self-share is not permitted
+    if from_user_id == to_user_id:
+        print(f"Un-Sharing Error: An attempt to self-unshare was made!")
+        return False
+
+    # Step 0: no to_user mentioned
+    if to_username == '':
+        print(f"Un-Sharing Error: No recipient mentioned!")
+        return False
+
     # Step 1: Obtain the owner information
-    resource_path = os.path.abspath(resource_id)
-    resource_metadata = os.stat(resource_path)
-    owner_uid = resource_metadata.st_uid
-    owner_name = pwd.getpwuid(owner_uid)[0]
+
+    owner_uid = -1  # Initialize a bad owner id
+    resource_path = resource_id
+
+    # File/Directory
+    if resource_type == 1:
+        resource_path = os.path.abspath(resource_id)
+        resource_metadata = os.stat(resource_path)
+        owner_uid = resource_metadata.st_uid
+
+    # Computational Partition
+    elif resource_type == 2:
+        # Run the scontrol show partition command and capture the output
+        result = subprocess.run(['scontrol', 'show', 'partition'], stdout=subprocess.PIPE, text=True)
+        output = result.stdout.splitlines()
+
+        for line in output:
+            if line.startswith('PartitionName='):
+                partition_name = line.split("=")[1]
+                if partition_name.startswith(from_username) and partition_name == resource_id:
+                    owner_uid = pwd.getpwnam(from_username).pw_uid
 
     # Step 2: Obtain the user list of the project
     # Define the base directory
