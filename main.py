@@ -5,20 +5,9 @@ import sys
 
 sys.path.append('/usr/bin/authz')
 
-from utilities.collab import create_project, add_collaborator, remove_collaborator, can_share, can_unshare, \
-    share, unshare, end_project
-from utilities.user import create_user, get_user
-from utilities.resource import create_resource
+from utilities.collab import create_project, add_collaborator, remove_collaborator, share, unshare, end_project
 import subprocess
 
-
-# def is_in_sudoers():
-#     try:
-#         # Attempt to execute a command that requires sudo
-#         subprocess.check_call(['sudo', '-n', 'ls'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-#         return True
-#     except subprocess.CalledProcessError:
-#         return False
 
 def is_in_sudoers():
     try:
@@ -56,7 +45,7 @@ def main():
     user = os.getlogin()
 
     if len(sys.argv) < 2:
-        print("Invalid Input: Please refer `./main.py help` for documentation")
+        print("Invalid Input: Please refer `authzmodel help` for documentation")
         return
 
     if len(sys.argv) == 2 and sys.argv[1].lower() == "help":
@@ -68,7 +57,7 @@ def main():
     accepted_actions = ["start", "add", "remove", "share", "unshare", "end"]
 
     if action not in accepted_actions:
-        print("Invalid Input: Please refer `./main.py help` for documentation")
+        print("Invalid Input: Please refer `authzmodel help` for documentation")
         return
 
     if action == "start":
