@@ -239,7 +239,7 @@ class Network:
             # If resource is already shared within the current context
             # Keep a note of the context and remove the resource to elevate later
             # No further search is needed because one resource can be shared at most one context
-            if resource_id_to_share in resources:
+            if (resource_type, resource_id_to_share) in resources:
                 already_shared_context = context
                 context.remove_resource(resource_type=resource_type, resource=resource_id_to_share)
                 break
@@ -270,6 +270,7 @@ class Network:
 
         correct_context.add_resource(resource=resource_id_to_share, resource_type=resource_type)
 
+        print("Error is not in classes/share_resource()")
         if already_shared_context is None:
             return None, correct_users
         return already_shared_context.get_users(), correct_users
@@ -293,7 +294,7 @@ class Network:
 
                 # If the context has the shared resources
                 # Remove the resource from the current context to the child without
-                if resource_id_to_unshare in resources:
+                if (resource_type, resource_id_to_unshare) in resources:
 
                     context.remove_resource(resource=resource_id_to_unshare, resource_type=resource_type)
                     already_shared_context = context
@@ -336,7 +337,7 @@ class Network:
                 # Step 2: Check if the current context is a leaf context (i.e. U2U collaboration), delete it!
                 if len(current_context.get_users()) == 2:
 
-                    for resource_path in current_context_resources:
+                    for resource_type, resource_path in current_context_resources:
                         privileges_to_update[resource_path] = dict({
                             "already_shared_users": current_context_users,
                             "correct_users": None
