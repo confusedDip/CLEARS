@@ -89,11 +89,13 @@ def main():
 
         from_user = os.getlogin()
         project_id = input("Enter the project name: ")
+        resource_type = input("Enter the resource type you want to share:\n\tSubmit 1 for Files/Directories\n\tSubmit "
+                              "2 for Computational Partition\n>")
         resource_to_share = input("Enter the resource name you want to share: ")
         to_users = input("Enter the user names to share with (space separated): ").split()
 
         share(from_username=from_user, resource_id_to_share=resource_to_share, to_usernames=set(to_users),
-              project_id=project_id)
+              project_id=project_id, resource_type=int(resource_type))
 
     if action == "unshare":
 
