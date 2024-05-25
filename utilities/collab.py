@@ -266,15 +266,16 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         if resource_type == 1:
             resource_path = os.path.abspath(resource_id_to_share)
 
+        # Share and Update the Collaboration Network
         already_shared_users, correct_users = (
             network.share_resource(from_user_id, resource_path, to_user_ids))
 
-        # Now assign to the correct context
+        # Now derive the correct collaboration context
         correct_context = project_id + ''.join(sorted(correct_users))
 
         group_exists, max_gid = group_exists_and_max_gid(group_name=correct_context)
 
-        # Add the new group if it doesn't exist
+        # Add the new group (collaboration) if it doesn't exist
         if not group_exists:
             create_group(
                 conn=conn,
@@ -283,7 +284,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
                 gid_number=max_gid + 1
             )
 
-        # Assign users to the group
+        # Assign users to the group (collaboration)
         for user_id in correct_users:
             user = pwd.getpwuid(int(user_id))[0]
             add_user_to_group(
@@ -291,6 +292,8 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
                 group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
                 user_uid=user
             )
+
+        # Update the privileges accordingly
 
         # File/Directory
         if resource_type == 1:
@@ -327,11 +330,8 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             result = subprocess.run(['scontrol', 'show', 'partition', resource_path],
                                     stdout=subprocess.PIPE, text=True)
             relevant_output = result.stdout.splitlines()[1]  # 'AllowGroups=grp_c AllowAccounts=ALL AllowQos=ALL'
-            print(relevant_output)
             relevant_config = relevant_output.split()[0]  # 'AllowGroups=grp_c'
-            print(relevant_config)
             existing_allowed_groups = set(relevant_config.split("=")[1].split(","))  # ('grp_c')
-            print(existing_allowed_groups)
 
             existing_allowed_groups.add(correct_context)
 
@@ -461,10 +461,12 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
         return False
 
 
-def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[str], project_id: str):
+def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[str], project_id: str,
+            resource_type: int):
     """
     This is the user action un-share that first authorizes the action with respect to can_unshare and then performs
     the un-share
+    :param resource_type: type of the resource (1:file/directory, 2:computational partition)
     :param from_username: which user is requesting to un-share?
     :param resource_id_to_unshare: what resource (privilege) is concerned?
     :param to_usernames: to which users is it being un-shared?
@@ -473,7 +475,7 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
 
     can_unshare_flag = True
     for to_username in to_usernames.copy():
-        if not can_unshare(from_username, resource_id_to_unshare, to_username, project_id):
+        if not can_unshare(from_username, resource_id_to_unshare, to_username, project_id, resource_type):
             can_unshare_flag = False
 
     if not can_unshare_flag:
@@ -492,8 +494,9 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
     # Construct the full path to the c wrappers
     wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
     wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
+    wrapper_supdate_path = os.path.join(script_dir, "wrapper_supdate")
 
-    # Setup the ldap connection
+    # Set up the ldap connection
     conn = connect_to_ldap()
 
     try:
@@ -509,14 +512,20 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
 
         from_user_id = str(pwd.getpwnam(from_username).pw_uid)
         to_user_ids = set(str(pwd.getpwnam(to_username).pw_uid) for to_username in to_usernames)
-        resource_path = os.path.abspath(resource_id_to_unshare)
 
+        resource_path = resource_id_to_unshare
+        if resource_type == 1:
+            resource_path = os.path.abspath(resource_id_to_unshare)
+
+        # Unshare and Update the Collaboration Network
         already_shared_users, correct_users = (
             network.unshare_resource(from_user_id, resource_path, to_user_ids))
 
-        if already_shared_users is not None:
-            # Remove rwx access to the group in the ACL of the file
-            already_shared_context = project_id + ''.join(sorted(already_shared_users))
+        # Construct the collaboration already enjoying the privileges and remove privileges
+        already_shared_context = project_id + ''.join(sorted(already_shared_users))
+
+        # File/Directory
+        if resource_type == 1:
 
             if get_file_system(resource_path) == "nfs":
                 grp_id = grp.getgrnam(already_shared_context).gr_gid
@@ -526,26 +535,31 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
 
             subprocess.run(["sync"])
 
-            already_shared_unames = set(
-                pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
-            print(f"Collaboration '{already_shared_unames}' removed access to file '{resource_path}'.")
+        # Computational Partition
+        elif resource_type == 2:
 
+            result = subprocess.run(['scontrol', 'show', 'partition', resource_path],
+                                    stdout=subprocess.PIPE, text=True)
+            relevant_output = result.stdout.splitlines()[1]  # 'AllowGroups=grp_c AllowAccounts=ALL AllowQos=ALL'
+            relevant_config = relevant_output.split()[0]  # 'AllowGroups=grp_c'
+            existing_allowed_groups = set(relevant_config.split("=")[1].split(","))  # ('grp_c')
+
+            existing_allowed_groups.remove(already_shared_context)
+
+            # Revoke the privileges
+            correct_new_group = existing_allowed_groups
+            new_context = ','.join(correct_new_group)
+            subprocess.run([wrapper_supdate_path, resource_path, new_context])
+
+        # Print the message of un-sharing the privileges
+        already_shared_unames = set(
+            pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
+        print(f"Collaboration '{already_shared_unames}' removed access to resource '{resource_path}'.")
+
+        # Now perform the privilge-contraction and re-share privileges
         if correct_users is not None:
             # Now assign to the correct context
             correct_context = project_id + ''.join(sorted(correct_users))
-
-            # with open("/etc/group", "r") as file:
-            #     existing_groups = file.read().splitlines()
-            #     group_exists = any(group_info.split(':')[0] == correct_context for group_info in existing_groups)
-            #
-            # # Add the new group if it doesn't exist
-            # if not group_exists:
-            #     subprocess.run([wrapper_groupadd_path, correct_context])
-            #
-            # # Assign users to the group
-            # for user_id in correct_users:
-            #     user = pwd.getpwuid(int(user_id))[0]
-            #     subprocess.run([wrapper_usermod_path, correct_context, user])
 
             group_exists, max_gid = group_exists_and_max_gid(group_name=correct_context)
 
@@ -562,25 +576,37 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
             # Assign users to the group
             for user_id in correct_users:
                 user = pwd.getpwuid(int(user_id))[0]
-                # print(correct_context, user)
-                # subprocess.run([wrapper_usermod_path, correct_context, user])
                 add_user_to_group(
                     conn=conn,
                     group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
                     user_uid=user
                 )
 
-            # Assign rwx access to the group in the ACL of the file
-            if get_file_system(resource_path) == "nfs":
-                grp_id = grp.getgrnam(correct_context).gr_gid
-                subprocess.run(["nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
-            else:
-                subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+            # File/Directory
+            if resource_type == 1:
 
-            subprocess.run(["sync"])
+                # Assign rwx access to the group in the ACL of the file
+                if get_file_system(resource_path) == "nfs":
+                    grp_id = grp.getgrnam(correct_context).gr_gid
+                    subprocess.run(["nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
+                else:
+                    subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+
+                subprocess.run(["sync"])
+
+            # Computational Partition
+            elif resource_type == 2:
+
+                # Assign access to the group
+                correct_new_group = existing_allowed_groups
+                correct_new_group.add(correct_context)
+                new_context = ','.join(correct_new_group)
+                subprocess.run([wrapper_supdate_path, resource_path, new_context])
+
+            # Finally print the sharing message
             correct_unames = set(
                 pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
-            print(f"Collaboration '{correct_unames}' granted access to file '{resource_path}'.")
+            print(f"Collaboration '{correct_unames}' granted access to resource '{resource_path}'.")
 
         # Dump the network to the project file
         dump_network_to_file(project_file, network)
