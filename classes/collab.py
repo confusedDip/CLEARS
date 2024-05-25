@@ -12,9 +12,11 @@ from utilities.user import remove_project, add_project
 
 
 def from_dict(data):
+    # Convert the list of lists into a list of tuples
+    resource_ids = [tuple(item) for item in data["resource_ids"]]
     return Context(
         set(data["user_ids"]),
-        set(data["resource_ids"]),
+        set(resource_ids),
         set(data["parents"]),
         set(data["children"])
     )
