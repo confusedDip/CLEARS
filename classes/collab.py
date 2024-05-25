@@ -341,6 +341,7 @@ class Network:
 
                     for resource_type, resource_path in current_context_resources:
                         privileges_to_update[resource_path] = dict({
+                            "resource_type": resource_type,
                             "already_shared_users": current_context_users,
                             "correct_users": None
                         })
