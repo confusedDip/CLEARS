@@ -625,6 +625,15 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
 
     except Exception as e:
         print(f"Error: {e}")
+        # Print the exception type
+        print(f"Exception type: {type(e).__name__}")
+
+        # Print the full exception information including traceback
+        import traceback
+        traceback.print_exc()
+
+        # Print the error message
+        print(f"Error message: {str(e)}")
 
 
 def remove_collaborator(project_id: str, users: set[str]):
@@ -788,6 +797,15 @@ def remove_collaborator(project_id: str, users: set[str]):
         print(f"Error: Project {project_id} not found.")
     except Exception as e:
         print(f"Error: {e}")
+        # Print the exception type
+        print(f"Exception type: {type(e).__name__}")
+
+        # Print the full exception information including traceback
+        import traceback
+        traceback.print_exc()
+
+        # Print the error message
+        print(f"Error message: {str(e)}")
 
 
 def end_project(project_id: str):
@@ -816,7 +834,15 @@ def end_project(project_id: str):
     except FileNotFoundError:
         print(f"Error: Project {project_id} not found.")
     except Exception as e:
-        print(f"Error: {e}")
+        # Print the exception type
+        print(f"Exception type: {type(e).__name__}")
+
+        # Print the full exception information including traceback
+        import traceback
+        traceback.print_exc()
+
+        # Print the error message
+        print(f"Error message: {str(e)}")
 
 # def can_access(requester_id: str, resource_id: str) -> bool:
 #     print(f"Requester: {requester_id}, Requested Resource: {resource_id}")
