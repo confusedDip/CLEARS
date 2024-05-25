@@ -268,7 +268,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
 
         # Share and Update the Collaboration Network
         already_shared_users, correct_users = (
-            network.share_resource(from_user_id, resource_path, to_user_ids))
+            network.share_resource(from_user_id, resource_path, to_user_ids, resource_type))
 
         # Now derive the correct collaboration context
         correct_context = project_id + ''.join(sorted(correct_users))
@@ -473,6 +473,7 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
     :param project_id: under which project context the sharing is taking place?
     """
 
+    existing_allowed_groups = set()
     can_unshare_flag = True
     for to_username in to_usernames.copy():
         if not can_unshare(from_username, resource_id_to_unshare, to_username, project_id, resource_type):
@@ -519,7 +520,7 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
 
         # Unshare and Update the Collaboration Network
         already_shared_users, correct_users = (
-            network.unshare_resource(from_user_id, resource_path, to_user_ids))
+            network.unshare_resource(from_user_id, resource_path, to_user_ids, resource_type))
 
         # Construct the collaboration already enjoying the privileges and remove privileges
         already_shared_context = project_id + ''.join(sorted(already_shared_users))
@@ -636,6 +637,7 @@ def remove_collaborator(project_id: str, users: set[str]):
     # Construct the full path to the c wrappers
     wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
     wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
+    wrapper_supdate_path = os.path.join(script_dir, "wrapper_supdate")
 
     # Setup the LDAP connection
     conn = connect_to_ldap()
@@ -653,6 +655,7 @@ def remove_collaborator(project_id: str, users: set[str]):
 
         groups_to_delete = set()
         user_groups_to_remove = set()
+        existing_allowed_groups = set()
 
         for username in users:
             user_id = pwd.getpwnam(username).pw_uid
@@ -660,52 +663,57 @@ def remove_collaborator(project_id: str, users: set[str]):
             print(f"{username}(uid={user_id}) successfully removed from {project_id}")
 
             for resource_path, item in privileges_to_update.items():
+
+                resource_type = item["resource_type"]
                 already_shared_users = item["already_shared_users"]
                 correct_users = item["correct_users"]
 
-                if already_shared_users is not None:
-                    # Remove rwx access to the group in the ACL of the file
-                    already_shared_context = project_id + ''.join(sorted(already_shared_users))
+                # Construct the collaboration already enjoying the privileges and remove privileges
+                already_shared_context = project_id + ''.join(sorted(already_shared_users))
+
+                # File/Directory
+                if resource_type == 1:
 
                     if get_file_system(resource_path) == "nfs":
                         grp_id = grp.getgrnam(already_shared_context).gr_gid
-                        subprocess.run(["sudo", "nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
+                        subprocess.run(["nfs4_setfacl", "-x", f"A:g:{grp_id}:rxtcy", resource_path])
                     else:
-                        subprocess.run(["sudo", "setfacl", "-x", f"g:{already_shared_context}", resource_path])
+                        subprocess.run(["setfacl", "-x", f"g:{already_shared_context}", resource_path])  # ext
 
                     subprocess.run(["sync"])
 
-                    # Remove the users from the group
-                    for user_id in already_shared_users:
-                        user = pwd.getpwuid(int(user_id))[0]
-                        user_groups_to_remove.add((user_id, already_shared_context))
-                        groups_to_delete.add(already_shared_context)
+                # Computational Partition
+                elif resource_type == 2:
 
-                    # Sync Changes
-                    subprocess.run(["sync"])
+                    result = subprocess.run(['scontrol', 'show', 'partition', resource_path],
+                                            stdout=subprocess.PIPE, text=True)
+                    relevant_output = result.stdout.splitlines()[
+                        1]  # 'AllowGroups=grp_c AllowAccounts=ALL AllowQos=ALL'
+                    relevant_config = relevant_output.split()[0]  # 'AllowGroups=grp_c'
+                    existing_allowed_groups = set(relevant_config.split("=")[1].split(","))  # ('grp_c')
 
-                    already_shared_unames = set(
-                        pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
-                    print(f"Collaboration '{already_shared_unames}' removed access to file '{resource_path}'.")
+                    existing_allowed_groups.remove(already_shared_context)
 
+                    # Revoke the privileges
+                    correct_new_group = existing_allowed_groups
+                    new_context = ','.join(correct_new_group)
+                    subprocess.run([wrapper_supdate_path, resource_path, new_context])
+
+                # Keep a note to remove the users from the group
+                for user_id in already_shared_users:
+                    user = pwd.getpwuid(int(user_id))[0]
+                    user_groups_to_remove.add((user_id, already_shared_context))
+                    groups_to_delete.add(already_shared_context)
+
+                # Print the message of un-sharing the privileges
+                already_shared_unames = set(
+                    pwd.getpwuid(int(already_shared_uid))[0] for already_shared_uid in already_shared_users)
+                print(f"Collaboration '{already_shared_unames}' removed access to resource '{resource_path}'.")
+
+                # Now perform the privilege-contraction and re-share privileges
                 if correct_users is not None:
                     # Now assign to the correct context
                     correct_context = project_id + ''.join(sorted(correct_users))
-
-                    # with open("/var/lib/extrausers/group", "r") as file:
-                    # with open("/etc/group", "r") as file:
-                    #     existing_groups = file.read().splitlines()
-                    #     group_exists = any(
-                    #         group_info.split(':')[0] == correct_context for group_info in existing_groups)
-                    #
-                    # # Add the new group if it doesn't exist
-                    # if not group_exists:
-                    #     subprocess.run([wrapper_groupadd_path, correct_context])
-                    #
-                    # # Assign users to the group
-                    # for user_id in correct_users:
-                    #     user = pwd.getpwuid(int(user_id))[0]
-                    #     subprocess.run([wrapper_usermod_path, correct_context, user])
 
                     group_exists, max_gid = group_exists_and_max_gid(group_name=correct_context)
 
@@ -727,23 +735,34 @@ def remove_collaborator(project_id: str, users: set[str]):
                             user_uid=user
                         )
 
-                    # Assign rwx access to the group in the ACL of the file
+                    # File/Directory
+                    if resource_type == 1:
 
-                    if get_file_system(resource_path) == "nfs":
-                        grp_id = grp.getgrnam(correct_context).gr_gid
-                        subprocess.run(["sudo", "nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
-                    else:
-                        subprocess.run(["sudo", "setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
+                        # Assign rwx access to the group in the ACL of the file
+                        if get_file_system(resource_path) == "nfs":
+                            grp_id = grp.getgrnam(correct_context).gr_gid
+                            subprocess.run(["nfs4_setfacl", "-m", f"A:g:{grp_id}:RX", resource_path])
+                        else:
+                            subprocess.run(["setfacl", "-m", f"g:{correct_context}:rwx", resource_path])
 
-                    subprocess.run(["sync"])
+                        subprocess.run(["sync"])
 
+                    # Computational Partition
+                    elif resource_type == 2:
+
+                        # Assign access to the group
+                        correct_new_group = existing_allowed_groups
+                        correct_new_group.add(correct_context)
+                        new_context = ','.join(correct_new_group)
+                        subprocess.run([wrapper_supdate_path, resource_path, new_context])
+
+                    # Finally print the sharing message
                     correct_unames = set(
                         pwd.getpwuid(int(correct_uid))[0] for correct_uid in correct_users)
-                    print(f"Collaboration '{correct_unames}' granted access to file '{resource_path}'.")
+                    print(f"Collaboration '{correct_unames}' granted access to resource '{resource_path}'.")
 
         # Remove the user-group associations
         for user, group in user_groups_to_remove:
-            # subprocess.run(["sudo", "deluser", user, group])
             remove_user_from_group(
                 conn=conn,
                 group_dn=f"cn={group},ou=groups,dc=rc,dc=example,dc=org",

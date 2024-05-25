@@ -1,8 +1,11 @@
+import pwd
+import subprocess
 import time
 from collections import deque
 from itertools import combinations
 # import pygraphviz as pgv
 import os
+from typing import Tuple
 
 from utilities.resource import get_resource
 from utilities.user import remove_project, add_project
@@ -28,7 +31,7 @@ class Context:
             parents = set()
         self.__id: str = ''.join(sorted(user_ids))
         self.__user_ids: set[str] = set(user_ids.copy())
-        self.__resource_ids: set[str] = resource_ids
+        self.__resource_ids: set[Tuple[int, str]] = resource_ids
         self.__parents: set[str] = parents
         self.__children: set[str] = children
 
@@ -47,7 +50,7 @@ class Context:
     def get_users(self) -> set[str]:
         return self.__user_ids
 
-    def get_resources(self) -> set[str]:
+    def get_resources(self) -> set[Tuple[int, str]]:
         return self.__resource_ids
 
     def get_parents(self) -> set[str]:
@@ -62,18 +65,18 @@ class Context:
     def add_children(self, new_child: str):
         self.__children.add(new_child)
 
-    def add_resource(self, resource: str):
-        self.__resource_ids.add(resource)
+    def add_resource(self, resource: str, resource_type: int):
+        self.__resource_ids.add((resource_type, resource))
 
-    def remove_resource(self, resource: str):
-        self.__resource_ids.remove(resource)
+    def remove_resource(self, resource: str, resource_type: int):
+        self.__resource_ids.remove((resource_type, resource))
 
-    def print_context(self) -> str:
-        context_str = (f"{self.__id}\n" + "{" + ', '.join(sorted(self.__user_ids)) + "}" +
-                       "\n" "[" + ', '.join(sorted(self.__resource_ids)) + "]")
-        # print(context_str)
-        return "{" + ', '.join(sorted(self.__user_ids)) + "}"
-        return context_str
+    # def print_context(self) -> str:
+    #     context_str = (f"{self.__id}\n" + "{" + ', '.join(sorted(self.__user_ids)) + "}" +
+    #                    "\n" "[" + ', '.join(sorted(self.__resource_ids)) + "]")
+    #     # print(context_str)
+    #     return "{" + ', '.join(sorted(self.__user_ids)) + "}"
+    #     return context_str
 
 
 class Network:
@@ -179,28 +182,28 @@ class Network:
 
             self.generate_child_contexts(child_context.get_id(), num_users - 1)
 
-    def print_network(self):
-
-        root_context_id = self.__root_context
-
-        root_context = self.__contexts[root_context_id]
-        queue = deque([root_context])
-        visited = {}
-
-        print("Root Context:")
-        print(root_context.print_context())
-        visited[root_context.get_id()] = True
-
-        print("\nChild Contexts:")
-
-        while queue:
-            current_context = queue.popleft()
-            for child_context_id in current_context.get_children():
-                if child_context_id not in visited.keys():
-                    child_context = self.__contexts[child_context_id]
-                    print(child_context.print_context())
-                    queue.append(child_context)
-                    visited[child_context] = True
+    # def print_network(self):
+    #
+    #     root_context_id = self.__root_context
+    #
+    #     root_context = self.__contexts[root_context_id]
+    #     queue = deque([root_context])
+    #     visited = {}
+    #
+    #     print("Root Context:")
+    #     print(root_context.print_context())
+    #     visited[root_context.get_id()] = True
+    #
+    #     print("\nChild Contexts:")
+    #
+    #     while queue:
+    #         current_context = queue.popleft()
+    #         for child_context_id in current_context.get_children():
+    #             if child_context_id not in visited.keys():
+    #                 child_context = self.__contexts[child_context_id]
+    #                 print(child_context.print_context())
+    #                 queue.append(child_context)
+    #                 visited[child_context] = True
 
     # def visualize_network(self):
     #     g = pgv.AGraph(directed=True)
@@ -221,7 +224,8 @@ class Network:
     #     g.draw(f'collaboration_network_{time.time()}.png')
     #     print("Collaboration network visualization saved")
 
-    def share_resource(self, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str]) -> (str, set[str]):
+    def share_resource(self, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str], resource_type: int) \
+            -> (str, set[str]):
 
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
@@ -237,7 +241,7 @@ class Network:
             # No further search is needed because one resource can be shared at most one context
             if resource_id_to_share in resources:
                 already_shared_context = context
-                context.remove_resource(resource_id_to_share)
+                context.remove_resource(resource_type=resource_type, resource=resource_id_to_share)
                 break
 
         # If the resource is already not shared
@@ -264,13 +268,13 @@ class Network:
                 correct_context = Context(correct_users)
                 self.add_context(correct_context)
 
-        correct_context.add_resource(resource_id_to_share)
+        correct_context.add_resource(resource=resource_id_to_share, resource_type=resource_type)
 
         if already_shared_context is None:
             return None, correct_users
         return already_shared_context.get_users(), correct_users
 
-    def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str]):
+    def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str], resource_type: int):
 
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
@@ -291,7 +295,7 @@ class Network:
                 # Remove the resource from the current context to the child without
                 if resource_id_to_unshare in resources:
 
-                    context.remove_resource(resource_id_to_unshare)
+                    context.remove_resource(resource=resource_id_to_unshare, resource_type=resource_type)
                     already_shared_context = context
 
                     additional_users = users.difference(involved_users)
@@ -308,7 +312,7 @@ class Network:
         else:
             correct_context = Context(correct_users)
             self.add_context(correct_context)
-        correct_context.add_resource(resource_id_to_unshare)
+        correct_context.add_resource(resource=resource_id_to_unshare, resource_type=resource_type)
         return already_shared_context.get_users(), correct_users
 
     def remove_user(self, user_id: str):
@@ -339,10 +343,28 @@ class Network:
                         })
 
                 else:
-                    for resource_path in current_context_resources:
+                    for resource_type, resource_path in current_context_resources:
 
-                        resource_metadata = os.stat(resource_path)
-                        owner_uid = str(resource_metadata.st_uid)
+                        owner_uid = -1
+
+                        # File/Directory
+                        if resource_type == 1:
+                            resource_metadata = os.stat(resource_path)
+                            owner_uid = str(resource_metadata.st_uid)
+
+                        # Computational Partition
+                        elif resource_type == 2:
+                            # Run the scontrol show partition command and capture the output
+                            result = subprocess.run(['scontrol', 'show', 'partition'], stdout=subprocess.PIPE,
+                                                    text=True)
+                            output = result.stdout.splitlines()
+
+                            for line in output:
+                                if line.startswith('PartitionName='):
+                                    partition_name = line.split("=")[1]
+                                    if partition_name == resource_path:
+                                        owner_name = resource_path.split("_")[0]
+                                        owner_uid = pwd.getpwnam(owner_name).pw_uid
 
                         # Step 3: Check if the user have been shared anything within the context, then un-share it
                         # and re-share it with some lower context
@@ -351,9 +373,11 @@ class Network:
                                 from_user_id=owner_uid,
                                 resource_id_to_unshare=resource_path,
                                 to_user_ids={user_id},
+                                resource_type=resource_type
                             )
 
                             privileges_to_update[resource_path] = dict({
+                                "resource_type": resource_type,
                                 "already_shared_users": already_shared_users,
                                 "correct_users": correct_users
                             })
@@ -361,6 +385,7 @@ class Network:
                         # Step 4: Check if the user has shared anything within the context, then un-share it
                         else:
                             privileges_to_update[resource_path] = dict({
+                                "resource_type": resource_type,
                                 "already_shared_users": current_context_users,
                                 "correct_users": None
                             })
