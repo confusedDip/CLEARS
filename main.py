@@ -20,6 +20,22 @@ def is_in_sudoers():
         return False
 
 
+def print_help():
+    print("authzmodel(1)")
+    print("\nNAME")
+    print("\tauthzmodel - efficiently manage shared privileges")
+    print("\nSYNOPSIS")
+    print("\tauthzmodel [COMMAND..]")
+    print("\nCOMMANDS")
+    print("\tstart\tStart a new project. (requires administrative privileges to perform)")
+    print("\n\tadd\tAdd collaborators to an existing project. (requires administrative privileges to perform)")
+    print("\n\tshare\tShare privileges with a collaborator to access resources within a project.")
+    print("\n\tunshare\tRetract previously shared privileges from a collaborator within a project.")
+    print("\n\tremove\tRemove collaborators from an existing project. (requires administrative privileges to perform)")
+    print("\n\tend\tEnd an existing project. (requires administrative privileges to perform)")
+    print("\n\thelp\tLaunch the help menu")
+
+
 def main():
     """
     Here I will update the progress:
@@ -48,10 +64,6 @@ def main():
         print("Invalid Input: Please refer `authzmodel help` for documentation")
         return
 
-    if len(sys.argv) == 2 and sys.argv[1].lower() == "help":
-        # print_help()
-        return
-
     action = sys.argv[1].lower()
 
     accepted_actions = ["start", "add", "remove", "share", "unshare", "end"]
@@ -59,6 +71,9 @@ def main():
     if action not in accepted_actions:
         print("Invalid Input: Please refer `authzmodel help` for documentation")
         return
+
+    if action == "help":
+        print_help()
 
     if action == "start":
 
