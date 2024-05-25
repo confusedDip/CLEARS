@@ -33,7 +33,7 @@ def print_help():
     print("\n\tunshare\tRetract previously shared privileges from a collaborator within a project.")
     print("\n\tremove\tRemove collaborators from an existing project. (requires administrative privileges to perform)")
     print("\n\tend\tEnd an existing project. (requires administrative privileges to perform)")
-    print("\n\thelp\tLaunch the help menu")
+    print("\n\thelp\tLaunch the help menu.")
 
 
 def main():
@@ -66,7 +66,7 @@ def main():
 
     action = sys.argv[1].lower()
 
-    accepted_actions = ["start", "add", "remove", "share", "unshare", "end"]
+    accepted_actions = ["start", "add", "remove", "share", "unshare", "end", "help"]
 
     if action not in accepted_actions:
         print("Invalid Input: Please refer `authzmodel help` for documentation")
