@@ -17,8 +17,6 @@ def from_dict(data):
     return Context(
         set(data["user_ids"]),
         set(resource_ids),
-        set(data["parents"]),
-        set(data["children"])
     )
 
 
