@@ -114,7 +114,6 @@ def add_collaborator(project_id: str, users: set[str]):
             network = Network(
                 user_ids=set(data['all_user_ids']),
                 project_id=data['project_id'],
-                root_context=data['root_context'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
@@ -255,7 +254,6 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             network = Network(
                 user_ids=set(data['all_user_ids']),
                 project_id=data['project_id'],
-                root_context=data['root_context'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
@@ -433,7 +431,6 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
             network = Network(
                 user_ids=set(data['all_user_ids']),
                 project_id=data['project_id'],
-                root_context=data['root_context'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
@@ -515,7 +512,6 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
             network = Network(
                 user_ids=set(data['all_user_ids']),
                 project_id=data['project_id'],
-                root_context=data['root_context'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
@@ -666,7 +662,6 @@ def remove_collaborator(project_id: str, users: set[str]):
             network = Network(
                 user_ids=set(data['all_user_ids']),
                 project_id=data['project_id'],
-                root_context=data['root_context'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
