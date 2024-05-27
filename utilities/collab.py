@@ -818,8 +818,7 @@ def end_project(project_id: str):
         # Read all lines from the project file
         with open(project_file, "r") as file:
             data = json.load(file)
-            user_ids = set(data['all_user_ids'])
-            usernames = [pwd.getpwuid(int(user_id))[0] for (user_id) in user_ids]
+            usernames = set(data['all_user_ids'])
             remove_collaborator(project_id=project_id, users=set(usernames))
 
         # os.remove(project_file)
