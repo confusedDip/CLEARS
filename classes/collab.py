@@ -33,17 +33,17 @@ class Context:
             parents = set()
         self.__id: str = ''.join(sorted(user_ids))
         self.__user_ids: set[str] = set(user_ids.copy())
-        self.__resource_ids: set[Tuple[int, str]] = resource_ids
-        self.__parents: set[str] = parents
-        self.__children: set[str] = children
+        self.__resource_names: set[Tuple[int, str]] = resource_ids
+        # self.__parents: set[str] = parents
+        # self.__children: set[str] = children
 
     def to_dict(self):
         return {
             "id": self.__id,
             "user_ids": list(self.__user_ids),
-            "resource_ids": list(self.__resource_ids),
-            "parents": list(self.__parents),
-            "children": list(self.__children)
+            "resource_ids": list(self.__resource_names),
+            # "parents": list(self.__parents),
+            # "children": list(self.__children)
         }
 
     def get_id(self) -> str:
@@ -53,25 +53,25 @@ class Context:
         return self.__user_ids
 
     def get_resources(self) -> set[Tuple[int, str]]:
-        return self.__resource_ids
+        return self.__resource_names
 
     def get_parents(self) -> set[str]:
         return self.__parents
 
-    def add_parents(self, new_parent: str):
-        self.__parents.add(new_parent)
-
-    def get_children(self) -> set[str]:
-        return self.__children
-
-    def add_children(self, new_child: str):
-        self.__children.add(new_child)
+    # def add_parents(self, new_parent: str):
+    #     self.__parents.add(new_parent)
+    #
+    # def get_children(self) -> set[str]:
+    #     return self.__children
+    #
+    # def add_children(self, new_child: str):
+    #     self.__children.add(new_child)
 
     def add_resource(self, resource: str, resource_type: int):
-        self.__resource_ids.add((resource_type, resource))
+        self.__resource_names.add((resource_type, resource))
 
     def remove_resource(self, resource: str, resource_type: int):
-        self.__resource_ids.remove((resource_type, resource))
+        self.__resource_names.remove((resource_type, resource))
 
     # def print_context(self) -> str:
     #     context_str = (f"{self.__id}\n" + "{" + ', '.join(sorted(self.__user_ids)) + "}" +
@@ -90,7 +90,7 @@ class Network:
             contexts = dict()
         self.__project_id = project_id
         self.__all_user_ids: set[str] = user_ids
-        self.__root_context: str = root_context
+        # self.__root_context: str = root_context
         self.__contexts: dict[str, Context] = contexts
         # Create the network
         # self.create_network()
@@ -99,7 +99,7 @@ class Network:
         return {
             "project_id": self.__project_id,
             "all_user_ids": list(self.__all_user_ids),
-            "root_context": self.__root_context,
+            # "root_context": self.__root_context,
             "contexts": {key: context.to_dict() for key, context in self.__contexts.items()}
         }
 
@@ -109,11 +109,11 @@ class Network:
     def get_all_user_ids(self) -> set[str]:
         return self.__all_user_ids
 
-    def get_root_context(self) -> str:
-        return self.__root_context
-
-    def set_root_context(self, context):
-        self.__root_context = context.get_id()
+    # def get_root_context(self) -> str:
+    #     return self.__root_context
+    #
+    # def set_root_context(self, context):
+    #     self.__root_context = context.get_id()
 
     def add_new_user(self, user: str):
         # Update the set of involved users
@@ -148,41 +148,41 @@ class Network:
             # Delete the context
             del self.__contexts[context.get_id()]
 
-    def expand_network(self):
+    # def expand_network(self):
+    #
+    #     new_root_context = Context(self.__all_user_ids)
+    #     self.add_context(new_root_context)
+    #     self.set_root_context(new_root_context)
+    #
+    #     # Recursively generate child contexts with one less user until leaf level with two users
+    #     self.generate_child_contexts(new_root_context.get_id(), len(self.__all_user_ids))
 
-        new_root_context = Context(self.__all_user_ids)
-        self.add_context(new_root_context)
-        self.set_root_context(new_root_context)
-
-        # Recursively generate child contexts with one less user until leaf level with two users
-        self.generate_child_contexts(new_root_context.get_id(), len(self.__all_user_ids))
-
-    def generate_child_contexts(self, current_context_id: str, num_users: int):
-
-        if num_users <= 2:
-            return
-
-        current_context = self.__contexts[current_context_id]
-
-        # Generate child contexts with one less user
-        user_combinations = [list(comb)
-                             for comb in combinations(current_context.get_users(), num_users - 1)]
-
-        for child_users in user_combinations:
-
-            child_context_id = ''.join(sorted(child_users))
-            current_context.add_children(child_context_id)
-
-            if child_context_id in self.__contexts.keys():
-                child_context = self.__contexts[child_context_id]
-
-            else:
-                child_context = Context(set(child_users))
-                self.add_context(child_context)
-
-            child_context.add_parents(current_context_id)
-
-            self.generate_child_contexts(child_context.get_id(), num_users - 1)
+    # def generate_child_contexts(self, current_context_id: str, num_users: int):
+    #
+    #     if num_users <= 2:
+    #         return
+    #
+    #     current_context = self.__contexts[current_context_id]
+    #
+    #     # Generate child contexts with one less user
+    #     user_combinations = [list(comb)
+    #                          for comb in combinations(current_context.get_users(), num_users - 1)]
+    #
+    #     for child_users in user_combinations:
+    #
+    #         child_context_id = ''.join(sorted(child_users))
+    #         current_context.add_children(child_context_id)
+    #
+    #         if child_context_id in self.__contexts.keys():
+    #             child_context = self.__contexts[child_context_id]
+    #
+    #         else:
+    #             child_context = Context(set(child_users))
+    #             self.add_context(child_context)
+    #
+    #         child_context.add_parents(current_context_id)
+    #
+    #         self.generate_child_contexts(child_context.get_id(), num_users - 1)
 
     # def print_network(self):
     #
@@ -399,42 +399,42 @@ class Network:
 
         return privileges_to_update
 
-    def can_access(self, requester_id: str, resource_id: str) -> bool:
-
-        # Obtain the resource from the requested resource_id
-        resource = get_resource(resource_id)
-        # Obtain the owner uid
-        owner_id = resource.get_owner()
-
-        # Use involved_users to find the potential contexts
-        involved_users = {owner_id, requester_id}
-
-        # Search across the network to see if the resource has been shared in any of the contexts involving the users
-        root_context = self.__root_context
-        queue = deque([root_context])
-        visited = {}
-
-        # The BFS Loop
-        while queue:
-
-            current_context = queue.popleft()
-            users = current_context.get_users()
-
-            # If the current context include the two users involved in the request, it needs further investigation
-            if involved_users.issubset(users):
-
-                # If the requested resource has been shared here, GRANT access
-                resources = current_context.get_resources()
-                if resource_id in resources:
-                    return True
-
-            for child_context in current_context.get_children():
-                if child_context not in visited.keys():
-                    queue.append(child_context)
-                    visited[child_context] = True
-
-        # If access is not granted by now, DENY
-        return False
+    # def can_access(self, requester_id: str, resource_id: str) -> bool:
+    #
+    #     # Obtain the resource from the requested resource_id
+    #     resource = get_resource(resource_id)
+    #     # Obtain the owner uid
+    #     owner_id = resource.get_owner()
+    #
+    #     # Use involved_users to find the potential contexts
+    #     involved_users = {owner_id, requester_id}
+    #
+    #     # Search across the network to see if the resource has been shared in any of the contexts involving the users
+    #     root_context = self.__root_context
+    #     queue = deque([root_context])
+    #     visited = {}
+    #
+    #     # The BFS Loop
+    #     while queue:
+    #
+    #         current_context = queue.popleft()
+    #         users = current_context.get_users()
+    #
+    #         # If the current context include the two users involved in the request, it needs further investigation
+    #         if involved_users.issubset(users):
+    #
+    #             # If the requested resource has been shared here, GRANT access
+    #             resources = current_context.get_resources()
+    #             if resource_id in resources:
+    #                 return True
+    #
+    #         for child_context in current_context.get_children():
+    #             if child_context not in visited.keys():
+    #                 queue.append(child_context)
+    #                 visited[child_context] = True
+    #
+    #     # If access is not granted by now, DENY
+    #     return False
 
 
 class Networks:
