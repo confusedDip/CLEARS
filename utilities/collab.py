@@ -81,7 +81,7 @@ def create_project(project_id: str):
     :param project_id: An unique identifier for the project
     """
     # Model Tasks:
-    network = Network(user_ids=set(), project_id=project_id)
+    network = Network(usernames=set(), project_id=project_id)
 
     # OS Tasks:
 
@@ -112,14 +112,15 @@ def add_collaborator(project_id: str, users: set[str]):
         with open(project_file, "r") as file:
             data = json.load(file)
             network = Network(
-                user_ids=set(data['all_user_ids']),
+                usernames=set(data['all_user_ids']),
                 project_id=data['project_id'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
 
         for new_username in users:
             new_user_id = pwd.getpwnam(new_username).pw_uid
-            network.add_new_user(user=str(new_user_id))
+            # network.add_new_user(user=str(new_user_id))
+            network.add_new_user(user=new_username)
             print(f"{new_username}(uid={new_user_id}) successfully added to {project_id}")
 
         dump_network_to_file(project_file, network)
@@ -196,7 +197,7 @@ def can_share(from_username: str, resource_id: str, to_username: str, project_id
                 print(f"Sharing Error: The requesting user {from_username} is not the owner of the resource")
                 return False
             else:
-                if (str(from_user_id) not in collaborators) or (str(to_user_id) not in collaborators):
+                if (from_username not in collaborators) or (to_username not in collaborators):
                     print(f"Sharing Error: {from_username} and {to_username} are not collaborators within {project_id}")
                     return False
                 else:
@@ -240,8 +241,6 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Construct the full path to the c wrappers
-    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
-    wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
     wrapper_supdate_path = os.path.join(script_dir, "wrapper_supdate")
 
     # Set up the LDAP Connection
@@ -252,7 +251,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
         with open(project_file, "r") as file:
             data = json.load(file)
             network = Network(
-                user_ids=set(data['all_user_ids']),
+                usernames=set(data['all_user_ids']),
                 project_id=data['project_id'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
@@ -429,7 +428,7 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
         with open(project_file, "r") as file:
             data = json.load(file)
             network = Network(
-                user_ids=set(data['all_user_ids']),
+                usernames=set(data['all_user_ids']),
                 project_id=data['project_id'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
@@ -441,7 +440,7 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
                 print(f"Un-Sharing Error: The requesting user {from_username} is not the owner of the resource")
                 return False
             else:
-                if (str(from_user_id) not in collaborators) or (str(to_user_id) not in collaborators):
+                if (str(from_username) not in collaborators) or (str(to_username) not in collaborators):
                     print(
                         f"Un-Sharing Error: {from_username} and {to_username} are not collaborators within {project_id}")
                     return False
@@ -510,7 +509,7 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
         with open(project_file, "r") as file:
             data = json.load(file)
             network = Network(
-                user_ids=set(data['all_user_ids']),
+                usernames=set(data['all_user_ids']),
                 project_id=data['project_id'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )
@@ -660,7 +659,7 @@ def remove_collaborator(project_id: str, users: set[str]):
         with open(project_file, "r") as file:
             data = json.load(file)
             network = Network(
-                user_ids=set(data['all_user_ids']),
+                usernames=set(data['all_user_ids']),
                 project_id=data['project_id'],
                 contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
             )

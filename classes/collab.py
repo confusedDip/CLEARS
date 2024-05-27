@@ -22,18 +22,12 @@ def from_dict(data):
 
 class Context:
 
-    def __init__(self, user_ids: set[str], resource_ids=None, parents=None, children=None):
-        if children is None:
-            children = set()
+    def __init__(self, user_ids: set[str], resource_ids=None):
         if resource_ids is None:
             resource_ids = set()
-        if parents is None:
-            parents = set()
         self.__id: str = ''.join(sorted(user_ids))
-        self.__user_ids: set[str] = set(user_ids.copy())
+        self.__user_ids: set[str] = set([pwd.getpwuid(int(user_id)).pw_name for user_id in user_ids.copy()])
         self.__resource_names: set[Tuple[int, str]] = resource_ids
-        # self.__parents: set[str] = parents
-        # self.__children: set[str] = children
 
     def to_dict(self):
         return {
@@ -48,13 +42,13 @@ class Context:
         return self.__id
 
     def get_users(self) -> set[str]:
-        return self.__user_ids
+        return set([str(pwd.getpwnam(username).pw_uid) for username in self.__user_ids])
 
     def get_resources(self) -> set[Tuple[int, str]]:
         return self.__resource_names
 
-    def get_parents(self) -> set[str]:
-        return self.__parents
+    # def get_parents(self) -> set[str]:
+    #     return self.__parents
 
     # def add_parents(self, new_parent: str):
     #     self.__parents.add(new_parent)
@@ -81,13 +75,13 @@ class Context:
 
 class Network:
 
-    def __init__(self, user_ids: set[str], project_id: str, root_context=None, contexts=None):
+    def __init__(self, usernames: set[str], project_id: str, root_context=None, contexts=None):
 
         # Initialize the Network object
         if contexts is None:
             contexts = dict()
         self.__project_id = project_id
-        self.__all_user_ids: set[str] = user_ids
+        self.__all_usernames: set[str] = usernames
         # self.__root_context: str = root_context
         self.__contexts: dict[str, Context] = contexts
         # Create the network
@@ -96,7 +90,7 @@ class Network:
     def to_dict(self):
         return {
             "project_id": self.__project_id,
-            "all_user_ids": list(self.__all_user_ids),
+            "all_user_ids": list(self.__all_usernames),
             # "root_context": self.__root_context,
             "contexts": {key: context.to_dict() for key, context in self.__contexts.items()}
         }
@@ -105,7 +99,7 @@ class Network:
         return self.__project_id
 
     def get_all_user_ids(self) -> set[str]:
-        return self.__all_user_ids
+        return self.__all_usernames
 
     # def get_root_context(self) -> str:
     #     return self.__root_context
@@ -115,7 +109,7 @@ class Network:
 
     def add_new_user(self, user: str):
         # Update the set of involved users
-        self.__all_user_ids.add(user)
+        self.__all_usernames.add(user)
         # Expand the network
         # self.expand_network()
         # Add the project to new user's project list
@@ -275,7 +269,8 @@ class Network:
             return None, correct_users
         return already_shared_context.get_users(), correct_users
 
-    def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str], resource_type: int):
+    def unshare_resource(self, from_user_id: str, resource_id_to_unshare: str, to_user_ids: set[str],
+                         resource_type: int):
 
         # Get all users who are involved in the transaction
         involved_users = to_user_ids.union({from_user_id})
@@ -322,7 +317,7 @@ class Network:
         privileges_to_update = dict()
 
         # Remove the user from the network object, and remove the project from the user
-        self.__all_user_ids.remove(user_id)
+        self.__all_usernames.remove(user_id)
 
         for context_id, context in self.__contexts.copy().items():
             current_context = context

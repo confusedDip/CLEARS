@@ -4,7 +4,7 @@ from utilities.resource import get_resource
 
 
 def start_project(user_ids: set[str], project_id: str):
-    network = Network(user_ids=user_ids, project_id=project_id)
+    network = Network(usernames=user_ids, project_id=project_id)
     # Add the network to the set of networks
     add_network(network)
     # Add the project to each user's project list
