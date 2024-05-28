@@ -15,6 +15,9 @@ from ldap.remove_user import remove_user_from_group
 
 
 def dump_network_to_file(project_file: str, network: Network):
+
+    network.print_network()
+
     network_json = json.dumps(network.to_dict(), indent=4)
 
     # Get the directory path of the currently executing Python script

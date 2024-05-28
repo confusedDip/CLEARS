@@ -260,7 +260,7 @@ class Network:
 
                 # Delete the context from the network
                 self.del_context(current_context)
-                self.print_network()
+                # self.print_network()
 
         return privileges_to_update
 
