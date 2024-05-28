@@ -778,7 +778,7 @@ def remove_collaborator(project_id: str, users: set[str]):
 
         # Remove the user-group associations
         for user_id, group in user_groups_to_remove:
-            user = pwd.getpwuid(user_id).pw_name
+            user = pwd.getpwuid(int(user_id)).pw_name
             remove_user_from_group(
                 conn=conn,
                 group_dn=f"cn={group},ou=groups,dc=rc,dc=example,dc=org",
