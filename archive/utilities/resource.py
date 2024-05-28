@@ -1,4 +1,4 @@
-from classes.resource import Resource, Resources
+from archive.classes.resource import Resource, Resources
 
 
 def create_resource(resource_id: str, owner: str):

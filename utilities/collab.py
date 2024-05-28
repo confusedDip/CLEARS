@@ -38,6 +38,11 @@ def dump_network_to_file(project_file: str, network: Network):
 
 
 def group_exists_and_max_gid(group_name):
+    """
+    A helper function to check whether a group exists in the system, if not generate the highest gid assigned so far
+    :param group_name: name of the group
+    :return: a pair (EXISTS_OR_NOT, max_gid)
+    """
     try:
         max_gid = -1
         group_exists = False
@@ -65,6 +70,11 @@ def group_exists_and_max_gid(group_name):
 
 
 def get_file_system(path: str):
+    """
+    Obtain the file system of a file/directory from resource stats
+    :param path: absolute path of the file/directory
+    :return: file system
+    """
     try:
         result = subprocess.run(["stat", "-f", "-c", "%T", path], capture_output=True, text=True, check=True)
         filesystem_type = result.stdout.strip()
@@ -497,8 +507,6 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Construct the full path to the c wrappers
-    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
-    wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
     wrapper_supdate_path = os.path.join(script_dir, "wrapper_supdate")
 
     # Set up the ldap connection
@@ -569,7 +577,6 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
 
             # Add the new group if it doesn't exist
             if not group_exists:
-                # subprocess.run([wrapper_groupadd_path, correct_context])
                 create_group(
                     conn=conn,
                     group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
@@ -647,11 +654,9 @@ def remove_collaborator(project_id: str, users: set[str]):
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
     # Construct the full path to the c wrappers
-    wrapper_groupadd_path = os.path.join(script_dir, "wrapper_groupadd")
-    wrapper_usermod_path = os.path.join(script_dir, "wrapper_usermod")
     wrapper_supdate_path = os.path.join(script_dir, "wrapper_supdate")
 
-    # Setup the LDAP connection
+    # Set up the LDAP connection
     conn = connect_to_ldap()
 
     try:
@@ -712,7 +717,6 @@ def remove_collaborator(project_id: str, users: set[str]):
 
                 # Keep a note to remove the users from the group
                 for user_id in already_shared_users:
-                    user = pwd.getpwuid(int(user_id))[0]
                     user_groups_to_remove.add((user_id, already_shared_context))
                     groups_to_delete.add(already_shared_context)
 
@@ -782,7 +786,6 @@ def remove_collaborator(project_id: str, users: set[str]):
 
         # Delete the groups
         for group in groups_to_delete:
-            # subprocess.run(["sudo", "groupdel", group])
             delete_group(conn=conn, group_dn=f"cn={group},ou=groups,dc=rc,dc=example,dc=org")
 
         dump_network_to_file(project_file, network)
@@ -836,35 +839,3 @@ def end_project(project_id: str):
 
         # Print the error message
         print(f"Error message: {str(e)}")
-
-# def can_access(requester_id: str, resource_id: str) -> bool:
-#     print(f"Requester: {requester_id}, Requested Resource: {resource_id}")
-#
-#     # Obtain the resource from the requested resource_id
-#     resource = get_resource(resource_id)
-#     # Obtain the owner uid
-#     owner_id = resource.get_owner()
-#
-#     # Always allow the owner to access
-#     if requester_id == owner_id:
-#         return True
-#
-#     # Obtain the mutual projects of the owner and the requestor
-#     owner_projects = get_user(owner_id).get_projects()
-#     requester_projects = get_user(requester_id).get_projects()
-#     mutual_projects = owner_projects.intersection(requester_projects)
-#
-#     # If they do not work on any common project, deny!
-#     if len(mutual_projects) == 0:
-#         return False
-#
-#     # Explore the collaboration network for each project to make a decision
-#     for project in mutual_projects:
-#         network = get_network(project)
-#         print(f"Checking the Collaboration Network for Project {project}")
-#         if network.can_access(requester_id, resource_id):
-#             return True
-#         else:
-#             print("False!")
-#
-#     return False

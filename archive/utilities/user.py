@@ -1,4 +1,4 @@
-from classes.user import User, Users
+from archive.classes.user import User, Users
 
 
 def create_user(user_id: str):

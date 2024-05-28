@@ -3,8 +3,8 @@ from collections import deque
 from itertools import combinations
 import pygraphviz as pgv
 
-from utilities.resource import get_resource
-from utilities.user import remove_project, add_project
+from archive.classes.resource import get_resource
+from archive.classes.user import remove_project, add_project
 
 
 class Context:

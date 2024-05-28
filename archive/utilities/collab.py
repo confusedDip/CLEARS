@@ -1,6 +1,6 @@
 from classes.collab import Network, Networks
-from utilities.user import get_user, add_project, remove_project
-from utilities.resource import get_resource
+from archive.classes.user import get_user, add_project, remove_project
+from archive.classes.resource import get_resource
 
 
 def start_project(user_ids: set[str], project_id: str):
