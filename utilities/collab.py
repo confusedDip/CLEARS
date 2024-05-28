@@ -743,7 +743,7 @@ def remove_collaborator(project_id: str, users: set[str]):
 
                     # Assign users to the group
                     for user_id in correct_users:
-                        user = pwd.getpwuid(int(user_id))[0]
+                        user = pwd.getpwuid(int(user_id)).pw_name
                         add_user_to_group(
                             conn=conn,
                             group_dn=f"cn={correct_context},ou=groups,dc=rc,dc=example,dc=org",
@@ -777,7 +777,8 @@ def remove_collaborator(project_id: str, users: set[str]):
                     print(f"Collaboration '{correct_unames}' granted access to resource '{resource_path}'.")
 
         # Remove the user-group associations
-        for user, group in user_groups_to_remove:
+        for user_id, group in user_groups_to_remove:
+            user = pwd.getpwuid(user_id).pw_name
             remove_user_from_group(
                 conn=conn,
                 group_dn=f"cn={group},ou=groups,dc=rc,dc=example,dc=org",
