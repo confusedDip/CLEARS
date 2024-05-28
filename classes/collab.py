@@ -84,12 +84,10 @@ class Network:
     def get_contexts(self) -> dict[str, Context]:
         return self.__contexts
 
-    def del_context(self, context: Context):
+    def del_context(self, context_id: str):
 
-        if context.get_id() in self.__contexts.keys():
-
-            # Delete the context
-            del self.__contexts[context.get_id()]
+        # Delete the context
+        del self.__contexts[context_id]
 
     def share_resource(self, from_user_id: str, resource_id_to_share: str, to_user_ids: set[str], resource_type: int) \
             -> (str, set[str]):
@@ -259,7 +257,7 @@ class Network:
                             })
 
                 # Delete the context from the network
-                self.del_context(current_context)
+                self.del_context(context_id)
                 # self.print_network()
 
         return privileges_to_update
