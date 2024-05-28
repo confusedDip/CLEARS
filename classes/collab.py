@@ -260,6 +260,14 @@ class Network:
 
                 # Delete the context from the network
                 self.del_context(current_context)
+                self.print_network()
 
         return privileges_to_update
 
+    def print_network(self):
+
+        print("Current version of the network: ")
+        print(f"Users: {self.get_all_user_ids()}")
+        for context in self.get_contexts().values():
+            print(f"Id: {context.get_id()}")
+            print(f"Resources: {context.get_resources()}")
