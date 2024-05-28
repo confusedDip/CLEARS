@@ -188,7 +188,8 @@ class Network:
         privileges_to_update = dict()
 
         # Remove the user from the network object, and remove the project from the user
-        self.__all_usernames.remove(user_id)
+        username = pwd.getpwuid(int(user_id)).pw_name
+        self.__all_usernames.remove(username)
 
         for context_id, context in self.__contexts.copy().items():
             current_context = context
