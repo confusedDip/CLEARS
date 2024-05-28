@@ -137,7 +137,6 @@ class Network:
 
         correct_context.add_resource(resource=resource_id_to_share, resource_type=resource_type)
 
-        print("Error is not in classes/share_resource()")
         if already_shared_context is None:
             return None, correct_users
         return already_shared_context.get_users(), correct_users
