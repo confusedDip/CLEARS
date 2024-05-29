@@ -781,14 +781,18 @@ def remove_collaborator(project_id: str, users: set[str]):
 
         # Remove the user-group associations
         for user_id, group in user_groups_to_remove:
-
-            print(f"Candidate for Removal: {user_id} from {group}")
-            user = pwd.getpwuid(int(user_id)).pw_name
-            remove_user_from_group(
-                conn=conn,
-                group_dn=f"cn={group},ou=groups,dc=rc,dc=example,dc=org",
-                user_uid=user
-            )
+            try:
+                print(f"Candidate for Removal: {user_id} from {group}")
+                user = pwd.getpwuid(int(user_id)).pw_name
+                remove_user_from_group(
+                    conn=conn,
+                    group_dn=f"cn={group},ou=groups,dc=rc,dc=example,dc=org",
+                    user_uid=user
+                )
+            except KeyError:
+                print(f"User ID {user_id} not found")
+            except Exception as e:
+                print(f"Error: {e}")
 
         # Delete the groups
         for group in groups_to_delete:
