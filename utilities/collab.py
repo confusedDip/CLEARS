@@ -16,7 +16,7 @@ from ldap.remove_user import remove_user_from_group
 
 def dump_network_to_file(project_file: str, network: Network):
 
-    network.print_network()
+    # network.print_network()
 
     network_json = json.dumps(network.to_dict(), indent=4)
 
@@ -678,7 +678,15 @@ def remove_collaborator(project_id: str, users: set[str]):
 
         for username in users:
             user_id = pwd.getpwnam(username).pw_uid
-            privileges_to_update = network.remove_user(user_id=str(user_id))
+            privileges_to_update, contexts_to_delete = network.remove_user(user_id=str(user_id))
+
+            for context in contexts_to_delete:
+                group = project_id + ''.join(sorted(context))
+                groups_to_delete.add(group)
+                # Keep a note to remove the users from the group
+                for user_id in context:
+                    user_groups_to_remove.add((user_id, group))
+
             print(f"{username}(uid={user_id}) successfully removed from {project_id}")
 
             for resource_path, item in privileges_to_update.items():
