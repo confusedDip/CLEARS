@@ -18,11 +18,17 @@ class Context:
     def __init__(self, user_ids: set[str], resource_ids=None):
         if resource_ids is None:
             resource_ids = set()
-        try:
-            self.__user_ids: set[str] = set([pwd.getpwuid(int(user_id)).pw_name for user_id in user_ids.copy()])
-        except ValueError as e:
-            self.__user_ids = user_ids.copy()
-        self.__id: str = ''.join(sorted(self.__user_ids))
+
+        try:    # case 1: user_ids are numeric identifiers
+            usernames = set([pwd.getpwuid(int(user_id)).pw_name for user_id in user_ids.copy()])
+            self.__id: str = ''.join(sorted(user_ids))
+
+        except ValueError as e:  # Case: user_ids are symbolic names
+            usernames = user_ids.copy()
+            user_ids = set([str(pwd.getpwnam(username).pw_uid) for username in user_ids.copy()])
+            self.__id: str = ''.join(sorted(user_ids))
+
+        self.__user_ids: set[str] = usernames
         self.__resource_names: set[Tuple[int, str]] = resource_ids
 
     def to_dict(self):
