@@ -190,7 +190,7 @@ class Network:
 
         # Maintain a dict of information to further update privileges
         privileges_to_update = dict()
-        contexts_to_delete = set()
+        contexts_to_delete = []
 
         # Remove the user from the network object, and remove the project from the user
         username = pwd.getpwuid(int(user_id)).pw_name
@@ -207,7 +207,7 @@ class Network:
                 
                 # Step 1.1: If no resources are shared within that context it needs to be removed
                 if len(current_context_resources) == 0:
-                    contexts_to_delete.add(current_context_users)
+                    contexts_to_delete.append(current_context_users)
                     
                 # Step 2: Check if the current context is a leaf context (i.e. U2U collaboration), delete it!
                 if len(current_context.get_users()) == 2:
