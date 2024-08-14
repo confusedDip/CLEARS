@@ -8,7 +8,7 @@ import subprocess
 # The path to the source code directory
 sys.path.append('/usr/bin/authz')
 
-
+# A method to check whether 'sudo' is allowed
 def is_in_sudoers():
     try:
         # Attempt to execute a command that requires sudo
@@ -19,7 +19,7 @@ def is_in_sudoers():
     except PermissionError:
         return False
 
-
+# The help module: authzmodel help
 def print_help():
     print("authzmodel(1)")
     print("\nNAME")
@@ -38,8 +38,6 @@ def print_help():
 
 def main():
     """
-    Here I will update the progress:
-
         (1) create_project():
             Takes a project id and registers the project in the system
         (2) add_collaborator():

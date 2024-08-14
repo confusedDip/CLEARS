@@ -1,3 +1,32 @@
-# Collaboration Network
+# Collaboration-aware Authorization of Resource Sharing
 
-Here, I implement the data structures and the algorithms to represent the earlier ideas of the Collaboration Network!
+## Environmental Setup
+
+The current implementation of our proposed access control model is tested in a simulated virtual environment
+emulating an actual Research Computing (RC) environment. The environment consists of three virtual machines - `linux0`,
+`linux1` and `linux3` - each running Ubuntu 22.04.03 LTS Server and connected through a bridged network using an Intel
+PRO/1000 MT Desktop adapter.
+
+Detailed walkthrough for the environmental setup can be found here.
+
+## Usage
+
+- Clone the Repository
+- Install the dependencies from `requirements.txt`
+- Create an empty repository at `/usr/bin/authz`
+- Copy the entire contents of the repository to `/usr/bin/authz`
+- Update the default permissions to the files accordingly
+- Create a symbolic link to the entry point of the codebase `main.py` named `authzmodel`
+- Run `authzmodel`
+
+```commandline
+$ git clone <repository url>
+$ cd /path/to/the/repository
+$ pip3 install -r requirements.txt
+$ sudo mkdir /usr/bin/authz
+$ sudo cp * -r /usr/bin/authz
+$ sudo chmod +s /usr/bin/authz/utilities/wrapper_network_dump
+$ sudo chmod +s /usr/bin/authz/utilities/wrapper_supdate
+$ sudo ln -s /usr/bin/authz/main.py /usr/bin/authzmodel
+$ authzmodel help
+```
