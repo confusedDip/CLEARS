@@ -9,7 +9,7 @@ PRO/1000 MT Desktop adapter.
 
 Detailed walkthrough for the environmental setup can be found here.
 
-## Usage
+## Installation
 
 - Clone the Repository
 - Install the dependencies from `requirements.txt`
@@ -29,4 +29,31 @@ $ sudo chmod +s /usr/bin/authz/utilities/wrapper_network_dump
 $ sudo chmod +s /usr/bin/authz/utilities/wrapper_supdate
 $ sudo ln -s /usr/bin/authz/main.py /usr/bin/authzmodel
 $ authzmodel help
+```
+
+## Usage
+
+```commandline
+authzmodel(1)
+
+NAME
+	authzmodel - efficiently manage shared privileges
+
+SYNOPSIS
+	authzmodel [COMMAND..]
+
+COMMANDS
+	start	Start a new project. (requires administrative privileges to perform)
+
+	add	Add collaborators to an existing project. (requires administrative privileges to perform)
+
+	share	Share privileges with a collaborator to access resources within a project.
+
+	unshare	Retract previously shared privileges from a collaborator within a project.
+
+	remove	Remove collaborators from an existing project. (requires administrative privileges to perform)
+
+	end	End an existing project. (requires administrative privileges to perform)
+
+	help	Launch the help menu.
 ```
