@@ -185,4 +185,4 @@ fabric.properties
 .idea
 
 # ldap configurations
-.config
+ldap/.config
