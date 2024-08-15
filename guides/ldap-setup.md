@@ -5,7 +5,7 @@ This guide provides step-by-step instructions for setting up an LDAP server on t
 
 ### Virtual Machine Setup
 
-For this tutorial, two VM servers with hostnames `linux0` and `linux2` have been set up. These VMs are connected through a `Bridged Adapter` and can interact with each other through `ping` and `ssh`. Both servers are running Ubuntu 22.04.3 LTS. This process can be extended to more than two servers.
+For this tutorial, we set up the LDAP server in the controller VM `linux0`. This VM is connected with one or more client VMs through a `Bridged Adapter` and can interact with them through `ping` and `ssh`. All VMs are running Ubuntu 22.04.3 LTS.
 
 ## Step 1: Configure the LDAP Server
 
