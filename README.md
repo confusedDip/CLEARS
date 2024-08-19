@@ -1,4 +1,4 @@
-# Collaboration-aware Authorization of Resource Sharing
+# CLEARS: Collaboration-aware Authorization of Resource Sharing
 
 In this work, we propose and implement a novel Collaboration-aware Access Control framework, which integrates project-specific collaborations and selective resource sharing to aid administrators in uniformly managing shared privileges within collaborative contexts, streamlining access decision-making while upholding the principle of least privilege to prevent unauthorized access in Research Computing environments.
 
@@ -47,32 +47,32 @@ sudo chmod +s /usr/bin/authz/utilities/wrapper_supdate
 ```
 
 #### 6. Create a Symbolic Link
-Link the entry point of the codebase (main.py) to an executable named `authzmodel` (or whatever name you prefer):
+Link the entry point of the codebase (main.py) to an executable named `clears` (or whatever name you prefer):
 
 ```bash
-sudo ln -s /usr/bin/authz/main.py /usr/bin/authzmodel
-sudo chmod +x /usr/bin/authzmodel
+sudo ln -s /usr/bin/authz/main.py /usr/bin/clears
+sudo chmod +x /usr/bin/clears
 ```
 
 #### 7. Run the Application
 Start the application to verify the setup:
 
 ```bash
-authzmodel help
+clears help
 ```
 
 
 ## Usage
-The authzmodel command-line tool allows administrators to efficiently manage shared privileges within collaborative projects. Below are the available commands:
+The clears command-line tool allows administrators to efficiently manage shared privileges within collaborative projects. Below are the available commands:
 
 ```bash
-authzmodel(1)
+clears(1)
 
 NAME
-    authzmodel - efficiently manage shared privileges
+    clears - efficiently manage shared privileges
 
 SYNOPSIS
-    authzmodel [COMMAND..]
+    clears [COMMAND..]
 
 COMMANDS
     start   Start a new project. (requires administrative privileges to perform)
