@@ -31,6 +31,9 @@ echo "[6/8] Updating permissions for privileged wrappers..."
 sudo chmod +s "$APP_DIR/utilities/wrapper_network_dump"
 sudo chmod +s "$APP_DIR/utilities/wrapper_supdate"
 
+echo "[7/9] Updating the owner..."
+sudo chown -R root "$APP_DIR"
+
 echo "[7/8] Creating symbolic link at $SYMLINK..."
 sudo ln -sf "$APP_DIR/main.py" "$SYMLINK"
 sudo chmod +x "$SYMLINK"

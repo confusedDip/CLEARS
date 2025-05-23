@@ -55,7 +55,7 @@ def create_users(conn, n=1, uid_start=1001):
 
 def main():
     conn = connect_to_ldap()
-    create_users(conn, n=100) # Create 100 users
+    create_users(conn, n=1000) # Create 1000 users
 
 if __name__ == "__main__":
     main()
