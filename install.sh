@@ -25,4 +25,5 @@ echo "[5/5] Creating symbolic link at $SYMLINK..."
 sudo ln -sf "$APP_DIR/main.py" "$SYMLINK"
 sudo chmod +x "$SYMLINK"
 
-echo "✅ Installation complete. You can now run the tool with: clears"
+echo "✅ Installation complete. You can now run the tool with: clears."
+echo "For starter, run 'clears help'"
