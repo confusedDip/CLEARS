@@ -2,9 +2,9 @@ from ldap3 import Server, Connection
 
 
 def connect_to_ldap(
-        server_url="LDAP SERVER URL",
+        server_url="192.168.29.150",
         username="cn=admin,dc=rc,dc=example,dc=org",
-        password="LDAP SERVER PASSWORD"
+        password="Bally@2016"
 ):
     server = Server(server_url)
     conn = Connection(server, user=username, password=password)

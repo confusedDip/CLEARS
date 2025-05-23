@@ -1,6 +1,18 @@
 from ldap3 import Server, Connection, MODIFY_ADD
-from ldap.connect_ldap import connect_to_ldap
-from ldap.create_group import create_group
+
+def connect_to_ldap(
+        server_url="LDAP SERVER URL",
+        username="cn=admin,dc=rc,dc=example,dc=org",
+        password="LDAP SERVER PASSWORD"
+):
+    server = Server(server_url)
+    conn = Connection(server, user=username, password=password)
+    conn.bind()
+    return conn
+
+def create_group(conn, group_dn, group_name, gid_number):
+    return conn.add(group_dn, ['top', 'posixGroup'], {'cn': group_name, 'gidNumber': gid_number})
+
 
 def create_users(conn, n=1, uid_start=1001):
     base_dn = "ou=users,dc=rc,dc=example,dc=org"
