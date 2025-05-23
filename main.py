@@ -44,6 +44,7 @@ def main():
     parser.add_argument('--mode', choices=['interactive', 'non-interactive'], default='interactive',
                         help='Mode of operation')
     parser.add_argument('-p', '--project', help='Project ID')
+    parser.add_argument('-o', '--owner', help='Owner / Command Initiator')
     parser.add_argument('-u', '--users', nargs='*', help='Usernames (space-separated list)')
     parser.add_argument('-r', '--resource', help='Resource name to share/unshare')
     parser.add_argument('-t', '--type', type=int, choices=[1, 2], help='Resource type (1 for file, 2 for compute)')
@@ -118,7 +119,7 @@ def main():
         users = set(args.users) if args.users else set()
         resource = args.resource
         resource_type = args.type
-        from_user = os.getlogin()
+        from_user = args.owner
 
         if action in ["start", "add", "remove", "end"] and not is_in_sudoers():
             print(f"{action} requires administrative privileges.")
