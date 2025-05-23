@@ -121,9 +121,9 @@ def main():
         resource_type = args.type
         from_user = args.owner
 
-        if action in ["start", "add", "remove", "end"] and not is_in_sudoers():
-            print(f"{action} requires administrative privileges.")
-            return
+        # if action in ["start", "add", "remove", "end"] and not is_in_sudoers():
+        #     print(f"{action} requires administrative privileges.")
+        #     return
 
         if action == "start":
             create_project(project_id=project_id)
