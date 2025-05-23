@@ -5,7 +5,7 @@ def create_project(n=1):
         project_id = f"Project{i}"
         try:
             result = subprocess.run(
-                ["clears", "start", "--mode=non-interactive", "-p", project_id],
+                ["sudo", "clears", "start", "--mode=non-interactive", "-p", project_id],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 check=True,
