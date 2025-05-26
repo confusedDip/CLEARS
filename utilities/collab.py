@@ -304,7 +304,7 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
             )
 
         # Update the privileges accordingly
-
+        print(resource_path)
         # File/Directory
         if resource_type == 1:
 
@@ -539,6 +539,7 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
         # Construct the collaboration already enjoying the privileges and remove privileges
         already_shared_context = project_id + ''.join(sorted(already_shared_users))
 
+        print(resource_path)
         # File/Directory
         if resource_type == 1:
 

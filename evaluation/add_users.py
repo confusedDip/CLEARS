@@ -33,7 +33,7 @@ def assign_users(n_projects=100, n_users=1000):
     for user in unassigned_users:
         project_id = random.choice(project_ids)
         subprocess.run([
-            "sudo", "python3", main_script, "add", "--mode=non-interactive",
+            "sudo", "clears", "add", "--mode=non-interactive",
             "-p", project_id, "-u", user
         ], check=True)
         user_project_map[user].add(project_id)
