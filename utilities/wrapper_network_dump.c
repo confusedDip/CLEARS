@@ -6,23 +6,19 @@
 
 #define BUFFER_SIZE 4096
 
+// Updated main
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s project_file network_json\n", argv[0]);
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s project_file\n", argv[0]);
         return 1;
     }
 
     const char *project_file = argv[1];
-    // const char *network_json = argv[2];
 
-    // Execute the usermod command with elevated privileges
     if (setuid(0) != 0) {
         perror("setuid");
         return 1;
     }
-
-    char buffer[BUFFER_SIZE];
-    size_t bytes_read;
 
     FILE *file = fopen(project_file, "w");
     if (file == NULL) {
@@ -30,15 +26,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-//    if (fwrite(network_json, sizeof(char), strlen(network_json), file) != strlen(network_json)) {
-//        fprintf(stderr, "Failed to write network data to project '%s': %s\n", project_file, strerror(errno));
-//        fclose(file);
-//        return 1;
-//    }
+    char buffer[BUFFER_SIZE];
+    size_t bytes_read;
 
-    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, stdin)) > 0) {
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), stdin)) > 0) {
         if (fwrite(buffer, 1, bytes_read, file) != bytes_read) {
-            fprintf(stderr, "Failed to write to '%s': %s\n", project_file, strerror(errno));
+            fprintf(stderr, "Failed to write to project '%s': %s\n", project_file, strerror(errno));
             fclose(file);
             return 1;
         }
