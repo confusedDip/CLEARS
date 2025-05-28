@@ -32,8 +32,14 @@ def dump_network_to_file(project_file: str, network: Network):
 
     try:
         # Call the C wrapper with the project file and network JSON
-        result = subprocess.run([wrapper_script_path, project_file, network_json],
-                                check=True, text=True, capture_output=True)
+        # result = subprocess.run([wrapper_script_path, project_file, network_json], check=True, text=True, capture_output=True)
+        result = subprocess.run(
+            [wrapper_script_path, project_file],
+            input=network_json,
+            text=True,
+            capture_output=True,
+            check=True
+        )
         print(result.stdout)
 
     except subprocess.CalledProcessError as e:

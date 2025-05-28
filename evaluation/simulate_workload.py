@@ -94,7 +94,7 @@ def main(index):
         # Experiment 2 Workload
         share_probability = 90 - int(tick / 20) * 10
         unshare_probability = 100 - share_probability
-        
+
         if tick < n_timestamps / 2: # 0 - 99
             add_probability = 0.9
             remove_probability = 0.0

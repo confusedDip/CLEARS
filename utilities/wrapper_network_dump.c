@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     }
 
     const char *project_file = argv[1];
-    const char *network_json = argv[2];
+    // const char *network_json = argv[2];
 
     // Execute the usermod command with elevated privileges
     if (setuid(0) != 0) {
@@ -21,16 +21,27 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    char buffer[BUFFER_SIZE];
+    size_t bytes_read;
+
     FILE *file = fopen(project_file, "w");
     if (file == NULL) {
         fprintf(stderr, "Failed to create project '%s': %s\n", project_file, strerror(errno));
         return 1;
     }
 
-    if (fwrite(network_json, sizeof(char), strlen(network_json), file) != strlen(network_json)) {
-        fprintf(stderr, "Failed to write network data to project '%s': %s\n", project_file, strerror(errno));
-        fclose(file);
-        return 1;
+//    if (fwrite(network_json, sizeof(char), strlen(network_json), file) != strlen(network_json)) {
+//        fprintf(stderr, "Failed to write network data to project '%s': %s\n", project_file, strerror(errno));
+//        fclose(file);
+//        return 1;
+//    }
+
+    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, stdin)) > 0) {
+        if (fwrite(buffer, 1, bytes_read, file) != bytes_read) {
+            fprintf(stderr, "Failed to write to '%s': %s\n", project_file, strerror(errno));
+            fclose(file);
+            return 1;
+        }
     }
 
     fclose(file);
