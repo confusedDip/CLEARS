@@ -92,8 +92,8 @@ def main(index):
         #     remove_probability = 0.8
 
         # Experiment 2 Workload
-        share_probability = 90 - int(tick / 20) * 10
-        unshare_probability = 100 - share_probability
+        share_probability = .8 - int(tick / 20) * .2
+        unshare_probability = 1 - share_probability
 
         if tick < n_timestamps / 2: # 0 - 99
             add_probability = 0.9
@@ -105,6 +105,7 @@ def main(index):
         if len(active_users) < max_users and random.random() < add_probability:
             new_user = random.choice([u for u in all_users if u not in active_users])
             active_users.add(new_user)
+            print(f"tick: {tick}")
             subprocess.run([
                 "sudo", "clears", "add", "--mode=non-interactive",
                 "-p", project_id, "-u", new_user
@@ -113,6 +114,7 @@ def main(index):
         if len(active_users) > initial_users and random.random() < remove_probability:
             user_to_remove = random.choice(list(active_users))
             active_users.remove(user_to_remove)
+            print(f"tick: {tick}")
             subprocess.run([
                 "sudo", "clears", "remove", "--mode=non-interactive",
                 "-p", project_id, "-u", user_to_remove
@@ -130,6 +132,7 @@ def main(index):
             if random.random() < share_probability:
                 potential_targets = [u for u in user_list if u != user]
                 to_share = random.sample(potential_targets, random.randint(1, len(potential_targets)))
+                print(f"tick: {tick}")
                 result = simulate_operation(project_id, "share", user, to_share, resource)
                 share_events.append(result)
                 total_latency += result["latency"]
@@ -139,6 +142,7 @@ def main(index):
             if shared_state[user] and random.random() < unshare_probability:
                 max_subset_size = len(shared_state[user])
                 to_unshare = random.sample(list(shared_state[user]), random.randint(1, max_subset_size))
+                print(f"tick: {tick}")
                 result = simulate_operation(project_id, "unshare", user, to_unshare, resource)
                 unshare_events.append(result)
                 total_latency += result["latency"]
