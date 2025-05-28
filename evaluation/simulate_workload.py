@@ -63,21 +63,44 @@ def main(index):
 
     n_timestamps = 200
 
-    for tick in range(1, n_timestamps + 1):
+    for tick in range(0, n_timestamps):
         share_count = 0
         unshare_count = 0
         total_latency = 0.0
 
-        if tick < n_timestamps / 2:
-            share_probability = 0.9
-            unshare_probability = 0.1
-            add_probability = 0.5
-            remove_probability = 0.1
-        else:
-            share_probability = 0.2
-            unshare_probability = 0.8
+        # 1-20 90, 10
+        # 21-40 80, 20
+        # 41-60 70, 30
+        # 61-80 60, 40
+        # 81-100 50, 50
+        # 101-120 50, 50
+        # 121-140 40, 60
+        # 141-160 30, 70
+        # 161-180 20, 80
+        # 181-200 10, 90
+
+        # Experiment 1 Workload
+        # if tick < n_timestamps / 2:
+        #     share_probability = 0.9
+        #     unshare_probability = 0.1
+        #     add_probability = 0.5
+        #     remove_probability = 0.1
+        # else:
+        #     share_probability = 0.2
+        #     unshare_probability = 0.8
+        #     add_probability = 0.1
+        #     remove_probability = 0.8
+
+        # Experiment 2 Workload
+        share_probability = 90 - int(tick / 20) * 10
+        unshare_probability = 100 - share_probability
+        
+        if tick < n_timestamps / 2: # 0 - 99
+            add_probability = 0.9
+            remove_probability = 0.0
+        else: # 100 - 199
             add_probability = 0.1
-            remove_probability = 0.8
+            remove_probability = unshare_probability
 
         if len(active_users) < max_users and random.random() < add_probability:
             new_user = random.choice([u for u in all_users if u not in active_users])
