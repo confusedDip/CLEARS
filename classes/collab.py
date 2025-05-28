@@ -176,6 +176,9 @@ class Network:
 
                     correct_users = additional_users.union({from_user_id})
 
+        if already_shared_context is None:
+            return None, None
+
         correct_context_id = ''.join(sorted(correct_users))
 
         if correct_context_id in self.__contexts.keys():

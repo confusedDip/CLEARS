@@ -464,17 +464,19 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
                         f"Un-Sharing Error: {from_username} and {to_username} are not collaborators within {project_id}")
                     return False
                 else:
+                    print(f"Un-Sharing {resource_path} Allowed: From {from_username} to {to_username}")
+                    return True
                     # Check if the privilege has been previously shared or not!
-                    for context_id, context in network.get_contexts().items():
-                        collaborators = context.get_users()
-                        if str(to_user_id) in collaborators and str(from_user_id) in collaborators:
-                            resources = context.get_resources()
-                            if (resource_type, resource_path) in resources:
-                                print(f"Un-Sharing {resource_path} Allowed: From {from_username} to {to_username}")
-                                return True
-
-                    print(f"Un-Sharing Error: {resource_path} was never shared with {to_username} within {project_id}")
-                    return False
+                    # for context_id, context in network.get_contexts().items():
+                    #     collaborators = context.get_users()
+                    #     if str(to_user_id) in collaborators and str(from_user_id) in collaborators:
+                    #         resources = context.get_resources()
+                    #         if (resource_type, resource_path) in resources:
+                    #             print(f"Un-Sharing {resource_path} Allowed: From {from_username} to {to_username}")
+                    #             return True
+                    #
+                    # print(f"Un-Sharing Error: {resource_path} was never shared with {to_username} within {project_id}")
+                    # return False
 
     except FileNotFoundError:
         print(f"Un-Sharing Error: Project {project_id} not found.")
@@ -542,6 +544,10 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
         already_shared_users, correct_users = (
             network.unshare_resource(from_user_id, resource_path, to_user_ids, resource_type))
 
+        if already_shared_users is None:
+            print(f"Un-Sharing Error: {resource_path} was never shared with one or many of {to_usernames} within {project_id}")
+            return
+        
         # Construct the collaboration already enjoying the privileges and remove privileges
         already_shared_context = project_id + ''.join(sorted(already_shared_users))
 
