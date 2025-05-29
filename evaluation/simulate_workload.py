@@ -46,15 +46,16 @@ def main(index):
     max_users = 100
     project_id = f"Project{index}"
 
-    share_events = []
-    unshare_events = []
-    summary_by_timestamp = []
+    # share_events = []
+    # unshare_events = []
+    # summary_by_timestamp = []
 
     active_users = set(f"user_{i}" for i in range(1, initial_users + 1))
     all_users = [f"user_{i}" for i in range(1, max_users + 1)]
 
     shared_state = defaultdict(set)
 
+    # Add initial set of users
     for user in active_users:
         subprocess.run([
             "sudo", "clears", "add", "--mode=non-interactive",
@@ -63,21 +64,20 @@ def main(index):
 
     n_timestamps = 100
 
+    # Initialize CSV files
+    share_path = f"df_share_{index}.csv"
+    unshare_path = f"df_unshare_{index}.csv"
+    summary_path = f"df_summary_{index}.csv"
+    df_share_header_written = False
+    df_unshare_header_written = False
+    df_summary_header_written = False
+
     for tick in range(0, n_timestamps):
         share_count = 0
         unshare_count = 0
         total_latency = 0.0
-
-        # 1-20 90, 10
-        # 21-40 80, 20
-        # 41-60 70, 30
-        # 61-80 60, 40
-        # 81-100 50, 50
-        # 101-120 50, 50
-        # 121-140 40, 60
-        # 141-160 30, 70
-        # 161-180 20, 80
-        # 181-200 10, 90
+        share_events = []
+        unshare_events = []
 
         # Experiment 1 Workload
         # if tick < n_timestamps / 2:
@@ -94,43 +94,39 @@ def main(index):
         # Experiment 2 Workload
         share_probability = 1 - int(tick / 10) * 0.1
         unshare_probability = 1 - share_probability
+        add_probability = 0.8 * (1 - int(tick / 50))
+        remove_probability = 0.8 * int(tick / 50)
 
-        if tick < n_timestamps / 2: # 0 - 49
-            add_probability = 0.8
-            remove_probability = 0.0
-        else: # 50 - 99
-            add_probability = 0.0
-            remove_probability = unshare_probability
+        # if tick < n_timestamps / 2: # 0 - 49
+        #     add_probability = 0.8
+        #     remove_probability = 0.0
+        # else: # 50 - 99
+        #     add_probability = 0.0
+        #     remove_probability = 0.8
 
         if len(active_users) < max_users and random.random() < add_probability:
-            new_user = random.choice([u for u in all_users if u not in active_users])
-            active_users.add(new_user)
-            print(f"tick: {tick}")
-            subprocess.run([
-                "sudo", "clears", "add", "--mode=non-interactive",
-                "-p", project_id, "-u", new_user
-            ], check=True)
-            new_user = random.choice([u for u in all_users if u not in active_users])
-            active_users.add(new_user)
-            print(f"tick: {tick}")
-            subprocess.run([
-                "sudo", "clears", "add", "--mode=non-interactive",
-                "-p", project_id, "-u", new_user
-            ], check=True)
+            for _ in range(2):  # Add two users
+                new_user = random.choice([u for u in all_users if u not in active_users])
+                active_users.add(new_user)
+                print(f"tick: {tick}", flush=True)
+                subprocess.run([
+                    "sudo", "clears", "add", "--mode=non-interactive",
+                    "-p", project_id, "-u", new_user
+                ], check=True)
 
         if len(active_users) > initial_users and random.random() < remove_probability:
-            user_to_remove = random.choice(list(active_users))
-            active_users.remove(user_to_remove)
-            print(f"tick: {tick}")
-            subprocess.run([
-                "sudo", "clears", "remove", "--mode=non-interactive",
-                "-p", project_id, "-u", user_to_remove
-            ], check=True)
-
-            if user_to_remove in shared_state:
-                del shared_state[user_to_remove]
-            for k in shared_state:
-                shared_state[k].discard(user_to_remove)
+            for _ in range(2):  # Remove two users
+                user_to_remove = random.choice(list(active_users))
+                active_users.remove(user_to_remove)
+                print(f"tick: {tick}", flush=True)
+                subprocess.run([
+                    "sudo", "clears", "remove", "--mode=non-interactive",
+                    "-p", project_id, "-u", user_to_remove
+                ], check=True)
+                if user_to_remove in shared_state:
+                    del shared_state[user_to_remove]
+                for k in shared_state:
+                    shared_state[k].discard(user_to_remove)
 
         user_list = list(active_users)
         for user in user_list:
@@ -156,25 +152,54 @@ def main(index):
                 unshare_count += 1
                 shared_state[user].difference_update(to_unshare)
 
-        summary_by_timestamp.append({
+        # Write incremental data to CSVs
+        if share_count > 0:
+            pd.DataFrame(share_events).to_csv(
+                share_path, mode='a', header=not df_share_header_written, index=False
+            )
+            df_share_header_written = True
+
+        if unshare_count > 0:
+            pd.DataFrame(unshare_events).to_csv(
+                unshare_path, mode='a', header=not df_unshare_header_written, index=False
+            )
+            df_unshare_header_written = True
+
+
+        pd.DataFrame([{
             "timestamp": tick,
             "share_count": share_count,
             "unshare_count": unshare_count,
             "total_latency": total_latency
-        })
+        }]).to_csv(
+            summary_path, mode='a', header=not df_summary_header_written, index=False
+        )
+        df_summary_header_written = True
 
-    return share_events, unshare_events, summary_by_timestamp
+        # summary_by_timestamp.append({
+        #     "timestamp": tick,
+        #     "share_count": share_count,
+        #     "unshare_count": unshare_count,
+        #     "total_latency": total_latency
+        # })
+
+    # return share_events, unshare_events, summary_by_timestamp
 
 
 # Run and export
 if __name__ == "__main__":
 
-    for i in range(1, 11):
-        share_events_res, unshare_events_res, summary_stats = main(i)
-        df_share = pd.DataFrame(share_events_res)
-        df_unshare = pd.DataFrame(unshare_events_res)
-        df_summary = pd.DataFrame(summary_stats)
-
-        df_share.to_csv(f"results/run{i}/df_share.csv")
-        df_unshare.to_csv(f"results/run{i}/df_unshare.csv")
-        df_summary.to_csv(f"results/run{i}/df_summary.csv")
+    for i in range(11, 12):
+        # share_events_res, unshare_events_res, summary_stats = main(i)
+        # df_share = pd.DataFrame(share_events_res)
+        # df_unshare = pd.DataFrame(unshare_events_res)
+        # df_summary = pd.DataFrame(summary_stats)
+        #
+        # # df_share.to_csv(f"results/run{i}/df_share.csv")
+        # # df_unshare.to_csv(f"results/run{i}/df_unshare.csv")
+        # # df_summary.to_csv(f"results/run{i}/df_summary.csv")
+        #
+        # df_share.to_csv(f"df_share_{i}.csv")
+        # df_unshare.to_csv(f"df_unshare_{i}.csv")
+        # df_summary.to_csv(f"df_summary_{i}.csv")
+        main(i)
