@@ -20,7 +20,7 @@ def count_active_contexts(json_path):
     return active_count
 
 # Simulated share/unshare operation
-def simulate_operation(project_id, op_type, from_user, to_users, resource):
+def simulate_operation(tick, project_id, op_type, from_user, to_users, resource):
     start_time = time.perf_counter()
     subprocess.run([
         "clears", op_type, "--mode=non-interactive",
@@ -32,6 +32,7 @@ def simulate_operation(project_id, op_type, from_user, to_users, resource):
     latency = end_time - start_time
     network_file_path = f"/etc/project/{project_id}.json"
     return {
+        "tick": tick,
         "operation": op_type,
         "from_user": from_user,
         "to_users_count": len(to_users),
@@ -91,18 +92,26 @@ def main(index):
         #     add_probability = 0.1
         #     remove_probability = 0.8
 
+        """
+            0-19 0.7 0.3
+            20-39 0.6 0.4
+            40-59 0.5 0.5
+            60-79 0.4 0.6
+            80-99 0.3 0.7 
+        """
         # Experiment 2 Workload
-        share_probability = 1 - int(tick / 10) * 0.1
+        share_probability = 0.7 - int(tick / 20) * 0.1
         unshare_probability = 1 - share_probability
-        add_probability = 0.8 * (1 - int(tick / 50))
-        remove_probability = 0.8 * int(tick / 50)
-
-        # if tick < n_timestamps / 2: # 0 - 49
-        #     add_probability = 0.8
-        #     remove_probability = 0.0
-        # else: # 50 - 99
-        #     add_probability = 0.0
-        #     remove_probability = 0.8
+        # Phase-based probability modeling
+        if tick < 40:  # Growth
+            add_probability = 0.8
+            remove_probability = 0.2
+        elif tick < 60:  # Stable
+            add_probability = 0.2
+            remove_probability = 0.2
+        else:  # Shrink
+            add_probability = 0.2
+            remove_probability = 0.8
 
         if len(active_users) < max_users and random.random() < add_probability:
             for _ in range(2):  # Add two users
@@ -136,7 +145,7 @@ def main(index):
                 potential_targets = [u for u in user_list if u != user]
                 to_share = random.sample(potential_targets, random.randint(1, len(potential_targets)))
                 print(f"tick: {tick}")
-                result = simulate_operation(project_id, "share", user, to_share, resource)
+                result = simulate_operation(tick, project_id, "share", user, to_share, resource)
                 share_events.append(result)
                 total_latency += result["latency"]
                 share_count += 1
@@ -146,7 +155,7 @@ def main(index):
                 max_subset_size = len(shared_state[user])
                 to_unshare = random.sample(list(shared_state[user]), random.randint(1, max_subset_size))
                 print(f"tick: {tick}")
-                result = simulate_operation(project_id, "unshare", user, to_unshare, resource)
+                result = simulate_operation(tick, project_id, "unshare", user, to_unshare, resource)
                 unshare_events.append(result)
                 total_latency += result["latency"]
                 unshare_count += 1
@@ -189,7 +198,7 @@ def main(index):
 # Run and export
 if __name__ == "__main__":
 
-    for i in range(11, 12):
+    for i in range(21, 22):
         # share_events_res, unshare_events_res, summary_stats = main(i)
         # df_share = pd.DataFrame(share_events_res)
         # df_unshare = pd.DataFrame(unshare_events_res)

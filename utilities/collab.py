@@ -230,6 +230,66 @@ def can_share(from_username: str, resource_id: str, to_username: str, project_id
         print(f"Sharing Error: {e}")
         return False
 
+def can_do_batch(from_username: str, resource_id: str, to_usernames: list, project_id: str, resource_type: int) -> bool:
+    """
+    An optimized version of can_share () and can_unshare ()
+    :param from_username:
+    :param resource_id:
+    :param to_usernames:
+    :param project_id:
+    :param resource_type:
+    :return:
+    """
+
+    from_user_id = pwd.getpwnam(from_username).pw_uid
+
+    if '' in to_usernames:
+        print("[Un]Sharing Error: One or more recipient usernames are empty.")
+        return False
+    if from_username in to_usernames:
+        print("[Un]Sharing Error: Self-sharing attempted.")
+        return False
+
+    owner_uid = -1
+    resource_path = resource_id
+
+    if resource_type == 1:
+        resource_path = os.path.abspath(resource_id)
+        owner_uid = os.stat(resource_path).st_uid
+    elif resource_type == 2:
+        result = subprocess.run(['scontrol', 'show', 'partition'], stdout=subprocess.PIPE, text=True)
+        output = result.stdout.splitlines()
+        for line in output:
+            if line.startswith('PartitionName='):
+                partition_name = line.split("=")[1]
+                if partition_name.startswith(from_username) and partition_name == resource_id:
+                    owner_uid = from_user_id
+
+    if owner_uid != from_user_id:
+        print(f"[Un]Sharing Error: {from_username} is not the owner of the resource.")
+        return False
+
+    project_file = f"/etc/project/{project_id}.json"
+    try:
+        with open(project_file, "r") as file:
+            data = json.load(file)
+            collaborators = set(data['all_user_ids'])
+
+        if from_username not in collaborators or not all(user in collaborators for user in to_usernames):
+            print(f"[Un]Sharing Error: One or more users not collaborators in {project_id}")
+            return False
+
+        print(f"[Un]Sharing {resource_path} Allowed")
+        return True
+
+    except FileNotFoundError:
+        print(f"[Un]Sharing Error: Project {project_id} not found.")
+        return False
+    except Exception as e:
+        print(f"[Un]Sharing Error: {e}")
+        return False
+
+
 
 def share(from_username: str, resource_id_to_share: str, to_usernames: set[str], project_id: str, resource_type: int):
     """
@@ -241,10 +301,14 @@ def share(from_username: str, resource_id_to_share: str, to_usernames: set[str],
     :param project_id: under which project context the sharing is taking place?
     :return:
     """
-    can_share_flag = True
-    for to_username in to_usernames.copy():
-        if not can_share(from_username, resource_id_to_share, to_username, project_id, resource_type):
-            can_share_flag = False
+    # can_share_flag = True
+    # for to_username in to_usernames.copy():
+    #     if not can_share(from_username, resource_id_to_share, to_username, project_id, resource_type):
+    #         can_share_flag = False
+
+    can_share_flag = can_do_batch(
+        from_username, resource_id_to_share, list(to_usernames), project_id, resource_type
+    )
 
     if not can_share_flag:
         print("One of more (from_user, resource, to_user) sharing query is not permitted")
@@ -498,11 +562,15 @@ def unshare(from_username: str, resource_id_to_unshare: str, to_usernames: set[s
     :param project_id: under which project context the sharing is taking place?
     """
 
-    existing_allowed_groups = set()
-    can_unshare_flag = True
-    for to_username in to_usernames.copy():
-        if not can_unshare(from_username, resource_id_to_unshare, to_username, project_id, resource_type):
-            can_unshare_flag = False
+    # existing_allowed_groups = set()
+    # can_unshare_flag = True
+    # for to_username in to_usernames.copy():
+    #     if not can_unshare(from_username, resource_id_to_unshare, to_username, project_id, resource_type):
+    #         can_unshare_flag = False
+
+    can_unshare_flag = can_do_batch(
+        from_username, resource_id_to_unshare, list(to_usernames), project_id, resource_type
+    )
 
     if not can_unshare_flag:
         print("One of more (from_user, resource, to_user) un-sharing query is not permitted")
