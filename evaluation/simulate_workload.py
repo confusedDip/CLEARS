@@ -42,7 +42,7 @@ def simulate_operation(project_id, op_type, from_user, to_users, resource):
 
 def main(index):
     random.seed(index)
-    initial_users = 10
+    initial_users = 20
     max_users = 100
     project_id = f"Project{index}"
 
@@ -61,7 +61,7 @@ def main(index):
             "-p", project_id, "-u", user
         ], check=True)
 
-    n_timestamps = 200
+    n_timestamps = 100
 
     for tick in range(0, n_timestamps):
         share_count = 0
@@ -92,17 +92,24 @@ def main(index):
         #     remove_probability = 0.8
 
         # Experiment 2 Workload
-        share_probability = .8 - int(tick / 20) * .2
+        share_probability = 1 - int(tick / 10) * 0.1
         unshare_probability = 1 - share_probability
 
-        if tick < n_timestamps / 2: # 0 - 99
-            add_probability = 0.9
+        if tick < n_timestamps / 2: # 0 - 49
+            add_probability = 0.8
             remove_probability = 0.0
-        else: # 100 - 199
-            add_probability = 0.1
+        else: # 50 - 99
+            add_probability = 0.0
             remove_probability = unshare_probability
 
         if len(active_users) < max_users and random.random() < add_probability:
+            new_user = random.choice([u for u in all_users if u not in active_users])
+            active_users.add(new_user)
+            print(f"tick: {tick}")
+            subprocess.run([
+                "sudo", "clears", "add", "--mode=non-interactive",
+                "-p", project_id, "-u", new_user
+            ], check=True)
             new_user = random.choice([u for u in all_users if u not in active_users])
             active_users.add(new_user)
             print(f"tick: {tick}")

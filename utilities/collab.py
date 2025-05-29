@@ -446,11 +446,11 @@ def can_unshare(from_username: str, resource_id: str, to_username: str, project_
         # Read all lines from the project file
         with open(project_file, "r") as file:
             data = json.load(file)
-            network = Network(
-                usernames=set(data['all_user_ids']),
-                project_id=data['project_id'],
-                contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
-            )
+            # network = Network(
+            #     usernames=set(data['all_user_ids']),
+            #     project_id=data['project_id'],
+            #     contexts={key: from_dict(context_data) for key, context_data in data["contexts"].items()}
+            # )
 
             collaborators = data['all_user_ids']
 
