@@ -185,30 +185,9 @@ def main(index):
         )
         df_summary_header_written = True
 
-        # summary_by_timestamp.append({
-        #     "timestamp": tick,
-        #     "share_count": share_count,
-        #     "unshare_count": unshare_count,
-        #     "total_latency": total_latency
-        # })
-
-    # return share_events, unshare_events, summary_by_timestamp
-
 
 # Run and export
 if __name__ == "__main__":
 
-    for i in range(21, 22):
-        # share_events_res, unshare_events_res, summary_stats = main(i)
-        # df_share = pd.DataFrame(share_events_res)
-        # df_unshare = pd.DataFrame(unshare_events_res)
-        # df_summary = pd.DataFrame(summary_stats)
-        #
-        # # df_share.to_csv(f"results/run{i}/df_share.csv")
-        # # df_unshare.to_csv(f"results/run{i}/df_unshare.csv")
-        # # df_summary.to_csv(f"results/run{i}/df_summary.csv")
-        #
-        # df_share.to_csv(f"df_share_{i}.csv")
-        # df_unshare.to_csv(f"df_unshare_{i}.csv")
-        # df_summary.to_csv(f"df_summary_{i}.csv")
+    for i in range(21, 31):
         main(i)
