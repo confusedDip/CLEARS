@@ -56,9 +56,7 @@
 The implementation is tested in a **simulated RCI environment** with three virtual machines:
 
 -   `linux0`, `linux1`, `linux3`
-    
 -   OS: **Ubuntu 22.04.03 LTS Server**
-    
 -   Network: **Bridged** via Intel PRO/1000 MT Desktop adapter
     
 
@@ -74,18 +72,17 @@ The implementation is tested in a **simulated RCI environment** with three virtu
 
 `git clone <repository-url> cd clears` 
 
-2️⃣ Run the Installation Script
+2️⃣ Update the `server_url`, admin `username` and `password` in `ldap/connect_ldap.py`
+
+3️⃣ Run the Installation Script
 
 `./install.sh` 
 
 This script:
 
 -   Installs dependencies
-    
 -   Compiles C wrappers
-    
 -   Sets up system directories & symbolic links
-    
 -   Prepares `clears` as a global command
     
 
@@ -110,12 +107,10 @@ NAME
 
 clears  -  efficiently  manage  shared  privileges
 
-  
 
 SYNOPSIS
 
 clears [COMMAND..]
-
   
 
 COMMANDS
@@ -149,122 +144,71 @@ The following snippets illustrate the command line interface for various command
 # start
 
 sysadmin@linux0:~$  sudo  clears  start
-
 Enter  the  project  name:  Project1
-
 Project  '/etc/project/Project1.json'  created/updated  successfully.
-
   
 
 # add
 
 sysadmin@linux0:~$  sudo  clears  add
-
 Enter  the  project  name:  Project1
-
 Enter  the  user  names  to  add (space separated): alex bailey cathy
-
 bailey(uid=10002) successfully added to Project1
-
 cathy(uid=10003) successfully added to Project1
-
 alex(uid=10001) successfully added to Project1
-
 Project  '/etc/project/Project1.json'  created/updated  successfully.
-
-  
   
 
 # share
 
 alex@linux1:~$  clears  share
-
 Enter  the  project  name:  Project1
-
 Enter  the  resource  type  you  want  to  share:
-
 Submit  1  for  Files/Directories
-
 Submit  2  for  Computational  Partition
-
 > 1
-
 Enter  the  resource  name  you  want  to  share:  /scratch/alex
-
 Enter  the  user  names  to  share  with (space separated): bailey cathy
-
 Sharing  /scratch/alex  Allowed:  From  alex  to  bailey
-
 Sharing  /scratch/alex  Allowed:  From  alex  to  cathy
-
 Collaboration  '{'alex', 'bailey', 'cathy'}'  granted  access  to  resource  '/scratch/alex'.
-
 Project  '/etc/project/Project1.json'  created/updated  successfully.
-
-  
   
 
 # unshare
 
 alex@linux1:~$  clears  unshare
-
 Enter  the  project  name:  Project1
-
 Enter  the  resource  type  you  want  to  un-share:
-
 Submit  1  for  Files/Directories
-
 Submit  2  for  Computational  Partition
-
 > 1
-
 Enter  the  resource  name  you  want  to  un-share:  /scratch/alex
-
 Enter  the  user  names  to  un-share  with (space separated): cathy
-
 Un-Sharing  /scratch/alex  Allowed:  From  alex  to  cathy
-
 Collaboration  '{'bailey', 'cathy', 'alex'}'  removed  access  to  resource  '/scratch/alex'.
-
 Collaboration  '{'bailey', 'alex'}'  granted  access  to  resource  '/scratch/alex'.
-
 Project  '/etc/project/Project1.json'  created/updated  successfully.
 
   
-
 # remove
 
 sysadmin@linux0:~$  sudo  clears  remove
-
 Enter  the  project  name:  Project1
-
 Enter  the  user  names  to  remove (space separated): bailey
-
 bailey(uid=10002) successfully removed from Project1
-
 Collaboration  '{'alex', 'bailey'}'  removed  access  to  resource  '/scratch/alex'.
-
 Project  '/etc/project/Project1.json'  created/updated  successfully.
 
   
-
 # end
 
 sysadmin@linux0:~$sudo  clears  end
-
 Enter  the  project  name:  Project1
-
 cathy(uid=10003) successfully removed from Project1
-
 alex(uid=10001) successfully removed from Project1
-
 Project  '/etc/project/Project1.json'  created/updated  successfully.
-
-  
-
 Project  Project1  ended  successfully!
-
-  
 
 ```
 
