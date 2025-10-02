@@ -187,3 +187,12 @@ fabric.properties
 
 # ldap configurations
 ldap/.config
+
+### macOS template
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+### Archival Code
+archive/*
