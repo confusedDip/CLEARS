@@ -1,9 +1,7 @@
 
 # CLEARS: Collaboration-Aware Authorization for Resource Sharing  
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)  
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)  
-[![Platform](https://img.shields.io/badge/Platform-Linux-orange)](#environmental-setup)  
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)  [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)  [![Platform](https://img.shields.io/badge/Platform-Linux-orange)](#environmental-setup)  
 
 ---
   
