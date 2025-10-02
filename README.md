@@ -58,7 +58,9 @@ The implementation is tested in a **simulated RCI environment** with three virtu
 -   Network: **Bridged** via Intel PRO/1000 MT Desktop adapter
     
 
-➡️ For detailed VM setup instructions, see the `guides` folder.
+➡️ For high-level details, please read [`Appendix.pdf`](https://github.com/confusedDip/CLEARS/blob/main/Appendix.pdf)
+
+➡️ For detailed VM setup instructions, see the [`guides`](https://github.com/confusedDip/CLEARS/tree/main/guides) folder.
 
   
 
