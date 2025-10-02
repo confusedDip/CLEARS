@@ -99,32 +99,20 @@ The **`clears`** CLI tool allows administrators to manage shared privileges in c
 
 clears(1)
 
-  
-
 NAME
-
 clears  -  efficiently  manage  shared  privileges
 
-
 SYNOPSIS
-
 clears [COMMAND..]
   
-
 COMMANDS
 
 start  Start  a  new  project. (requires administrative  privileges  to  perform)
-
 add  Add  collaborators  to  an  existing  project. (requires administrative  privileges  to  perform)
-
 share  Share  privileges  with  a  collaborator  to  access  resources  within  a  project.
-
 unshare  Retract  previously  shared  privileges  from  a  collaborator  within  a  project.
-
 remove  Remove  collaborators  from  an  existing  project. (requires administrative  privileges  to  perform)
-
 end End an existing project. (requires  administrative  privileges  to  perform)
-
 help  Launch  the  help  menu.
 
 ```
@@ -143,8 +131,7 @@ The following snippets illustrate the command line interface for various command
 
 sysadmin@linux0:~$  sudo  clears  start
 Enter  the  project  name:  Project1
-Project  '/etc/project/Project1.json'  created/updated  successfully.
-  
+Project  '/etc/project/Project1.json'  created/updated  successfully.  
 
 # add
 
@@ -155,7 +142,6 @@ bailey(uid=10002) successfully added to Project1
 cathy(uid=10003) successfully added to Project1
 alex(uid=10001) successfully added to Project1
 Project  '/etc/project/Project1.json'  created/updated  successfully.
-  
 
 # share
 
@@ -172,7 +158,6 @@ Sharing  /scratch/alex  Allowed:  From  alex  to  cathy
 Collaboration  '{'alex', 'bailey', 'cathy'}'  granted  access  to  resource  '/scratch/alex'.
 Project  '/etc/project/Project1.json'  created/updated  successfully.
   
-
 # unshare
 
 alex@linux1:~$  clears  unshare
@@ -188,7 +173,6 @@ Collaboration  '{'bailey', 'cathy', 'alex'}'  removed  access  to  resource  '/s
 Collaboration  '{'bailey', 'alex'}'  granted  access  to  resource  '/scratch/alex'.
 Project  '/etc/project/Project1.json'  created/updated  successfully.
 
-  
 # remove
 
 sysadmin@linux0:~$  sudo  clears  remove
@@ -198,7 +182,6 @@ bailey(uid=10002) successfully removed from Project1
 Collaboration  '{'alex', 'bailey'}'  removed  access  to  resource  '/scratch/alex'.
 Project  '/etc/project/Project1.json'  created/updated  successfully.
 
-  
 # end
 
 sysadmin@linux0:~$sudo  clears  end
